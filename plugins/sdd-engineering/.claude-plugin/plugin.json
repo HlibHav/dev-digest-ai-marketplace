@@ -1,0 +1,14 @@
+{
+  "name": "sdd-engineering",
+  "version": "0.1.0",
+  "description": "Spec-driven workflow: idea to spec to plan, delegating research and architecture review.",
+  "author": { "name": "HlibHav", "url": "https://github.com/HlibHav" },
+  "homepage": "https://github.com/HlibHav/dev-digest-ai-marketplace/tree/main/plugins/sdd-engineering",
+  "repository": "https://github.com/HlibHav/dev-digest-ai-marketplace",
+  "license": "MIT",
+  "dependencies": [
+    { "name": "engineering-paved-path", "version": "~1.0.0" },
+    { "name": "research-tools", "version": "~1.0.0" },
+    { "name": "architecture-review", "version": "~1.0.0" }
+  ]
+}

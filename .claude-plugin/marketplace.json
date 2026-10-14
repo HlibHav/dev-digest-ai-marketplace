@@ -1,0 +1,35 @@
+{
+  "name": "dev-digest-ai-marketplace",
+  "owner": { "name": "HlibHav", "url": "https://github.com/HlibHav" },
+  "description": "Reusable Claude Code harness extracted from DevDigest: engineering practices, research, architecture review and a spec-driven workflow.",
+  "plugins": [
+    {
+      "name": "engineering-paved-path",
+      "source": "./plugins/engineering-paved-path",
+      "description": "Shared engineering practices: verification gate, test-first done, scope discipline.",
+      "category": "engineering",
+      "tags": ["practices", "verification"]
+    },
+    {
+      "name": "research-tools",
+      "source": "./plugins/research-tools",
+      "description": "Read-only researcher agent that answers a concrete question from the repo or the web with evidence.",
+      "category": "research",
+      "tags": ["research", "read-only"]
+    },
+    {
+      "name": "architecture-review",
+      "source": "./plugins/architecture-review",
+      "description": "Independent read-only architecture reviewer that checks a diff against layer boundaries.",
+      "category": "review",
+      "tags": ["architecture", "review"]
+    },
+    {
+      "name": "sdd-engineering",
+      "source": "./plugins/sdd-engineering",
+      "description": "Spec-driven workflow: idea to spec to plan, delegating research and architecture review.",
+      "category": "workflow",
+      "tags": ["sdd", "spec", "plan"]
+    }
+  ]
+}

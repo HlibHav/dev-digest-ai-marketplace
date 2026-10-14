@@ -1,0 +1,11 @@
+# Last matching pattern wins. Enforced by the main ruleset ("Require review from Code Owners").
+*                                  @HlibHav
+/CODEOWNERS                        @HlibHav
+/.claude-plugin/marketplace.json   @HlibHav
+/.github/                          @HlibHav
+/docs/SECURITY.md                  @HlibHav
+/docs/RELEASES.md                  @HlibHav
+/plugins/engineering-paved-path/   @HlibHav
+/plugins/research-tools/           @HlibHav
+/plugins/architecture-review/      @HlibHav
+/plugins/sdd-engineering/          @HlibHav

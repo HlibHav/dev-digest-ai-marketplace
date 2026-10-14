@@ -1,0 +1,9 @@
+{
+  "name": "research-tools",
+  "version": "0.1.0",
+  "description": "Read-only researcher agent that answers a concrete question from the repo or the web with evidence.",
+  "author": { "name": "HlibHav", "url": "https://github.com/HlibHav" },
+  "homepage": "https://github.com/HlibHav/dev-digest-ai-marketplace/tree/main/plugins/research-tools",
+  "repository": "https://github.com/HlibHav/dev-digest-ai-marketplace",
+  "license": "MIT"
+}
