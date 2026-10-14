@@ -1,0 +1,6 @@
+{
+  "mcpServers": {
+    "local-tool": { "command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/server.js", "--stdio"] },
+    "loopback-api": { "type": "http", "url": "http://localhost:8080/mcp" }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "mcpServers": {
+    "stdio-tool": { "command": "npx", "args": ["-y", "example-mcp-server"] },
+    "remote-docs": { "type": "http", "url": "https://example.com/mcp" }
+  }
+}

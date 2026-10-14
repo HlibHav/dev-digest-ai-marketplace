@@ -1,0 +1,11 @@
+{
+  "name": "beta",
+  "version": "1.0.0",
+  "description": "Review and operations tooling that depends on alpha and gamma.",
+  "author": { "name": "fixture" },
+  "license": "MIT",
+  "dependencies": [
+    { "name": "alpha", "version": "~1.0.0" },
+    { "name": "gamma", "version": "~0.3.0" }
+  ]
+}
