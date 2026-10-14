@@ -93,6 +93,8 @@ function walk(dir) {
       if (SKIP_DIRS.has(d.name) || rel === 'docs/temp') continue;
       walk(full);
     } else if (d.isFile()) {
+      // A worktree's .git is a file holding the absolute gitdir path.
+      if (d.name === '.git' && dir === root) continue;
       const buf = readFileSync(full);
       if (buf.includes(0)) continue;
       const lines = buf.toString('utf8').split('\n');
