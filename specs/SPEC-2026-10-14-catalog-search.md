@@ -1,7 +1,7 @@
 # Spec: Catalog search, install builder, trust profile, context cost and visual effects
 
 Spec ID: SPEC-2026-10-14-catalog-search
-Status: draft (owner decisions recorded 2026-10-14; awaiting spec review)
+Status: approved (Glib, 2026-10-14)
 Tier: Full SDD (scorecard 6/6)
 Supersedes: none. Extends the skeleton in `docs/SITE-SPEC.md`; once this spec is approved, SITE-SPEC.md points here.
 Packages: marketplace repo (build script, published static site, CI)
@@ -143,12 +143,13 @@ Proof tags: `red-first unit` | `red-first integration` | `e2e` | `browser (main 
 ### I. Visual effects (WebGPU shaders)
 
 - AC-49 WHERE the browser supports WebGPU and the user has not requested reduced motion, the system shall render an animated shader background behind the page header; otherwise it shall render a static CSS gradient in the same palette. Proof: e2e (both branches, WebGPU stubbed off) plus browser (main session) for the live effect.
-- AC-50 WHEN a result or plugin card receives pointer hover or keyboard focus, the system shall show a shader effect on that card whose colour is fixed per artifact type (one colour each for plugin, skill, agent, command, hook, MCP server), and WHEN hover and focus leave, the effect stops. Proof: e2e (effect state per card) plus browser (main session) for the visual.
+- AC-50 WHEN a result or plugin card receives pointer hover or keyboard focus, the system shall show a shader effect on that card whose colour is fixed per artifact type (one colour each for plugin, skill, agent, command, hook, MCP server), and WHEN hover and focus leave, the effect stops. Colour is never the only signal: the type label is always shown as text. Proof: e2e (effect state per card) plus browser (main session) for the visual.
+- AC-58 Each type shall have a light and a dark colour (badge text, badge border, card glow, effect), and every badge-text colour shall have contrast of at least 4.5:1 against the page and card backgrounds in its theme. Proof: red-first unit (computes WCAG ratios for all 6 types × 2 themes × 2 backgrounds).
 - AC-51 The system shall keep at most 2 live WebGPU canvases at any time (the header and at most one card); a card effect starting shall stop the previous card effect. Proof: e2e. Verify: move focus across 10 cards; the count of live canvases never exceeds 2.
 - AC-52 WHILE the tab is hidden or an effect's canvas is out of the viewport, the system shall pause that effect's render loop. Proof: e2e. Verify: hide the tab; frame callbacks stop.
 - AC-53 WHEN reduced motion is requested, the system shall show no animated effect anywhere (header static, card focus shown by a non-animated outline and colour). Proof: e2e.
 - AC-54 The effects shall load only after the static list and search are interactive, and IF WebGPU initialisation or the effects bundle fails, THEN the system shall fall back to the static look without an error message to the user and without affecting search or the builder. Proof: e2e. Verify: block the effects bundle; search works and the static gradient shows.
-- AC-55 The JavaScript needed for search, builder and the static look shall be at most 60 KB gzipped; the effects code is loaded separately on demand and is excluded from this budget. Proof: red-first integration (build reports and checks bundle sizes).
+- AC-55 The JavaScript needed for search, builder and the static look (including the inlined dictionary and word lists) shall be at most 60 KB gzipped, and the build shall warn above 45 KB; the lazily loaded effects code and the index data are excluded. Proof: red-first integration (the build measures each non-lazy output from the bundler's metafile, gzipped).
 - AC-56 Text and controls drawn over any effect shall keep contrast of at least 4.5:1 in every frame, so effects sit behind a scrim or use colours chosen for that. Proof: browser (main session) with sampled frames in light and dark.
 - AC-57 The system shall use only components from the MIT-licensed `shaders` package, never paid "Pro" components, and the site shall credit the package. Proof: red-first integration (the build checks that every imported effect component comes from the MIT package) plus e2e (credit visible).
 
@@ -266,12 +267,14 @@ Behaviour-level shape of the published index (snake_case JSON); field names may 
 | Q-12 Unsatisfiable-range hint | Deferred to the version-history phase. |
 | Q-13 CSP | Meta-tag CSP, same-origin only (NFR). |
 | Q-14 Dictionary governance | `CODEOWNERS` entry; build fails on duplicate keys and malformed values (AC-5). |
+| Q-15 Core JS budget | 60 KB gzipped hard limit, warning at 45 KB, measured from the bundler metafile (AC-55). |
+| Q-16 Type colours | Light/dark pair per type, starting from plugin #1d4ed8/#60a5fa, skill #6d28d9/#a78bfa, agent #047857/#34d399, command #b45309/#fbbf24, hook #be123c/#fb7185, MCP #0e7490/#22d3ee; adjusted until AC-58 passes; type label always shown as text. |
+| E2E tooling | Playwright with axe, test-only devDependencies (decision record 2026-10-14-e2e-playwright). |
 | Effects | Used actively: header background plus per-card effect coloured by type, with fallbacks (AC-49 to AC-57). |
 
 ## Open questions
 
-- [NEEDS CLARIFICATION: Q-15 Initial JS budget] AC-55 proposes 60 KB gzipped for core JS. Confirm in the plan once MiniSearch and the UI are measured; non-blocking for the ACs' shape.
-- [NEEDS CLARIFICATION: Q-16 Type colours] The six per-type colours (AC-50) are chosen in the plan, checked against AC-48 and AC-56 contrast in light and dark. Non-blocking.
+None.
 
 ## Traceability
 
@@ -334,6 +337,7 @@ Behaviour-level shape of the published index (snake_case JSON); field names may 
 | AC-55 | red-first integration | core JS ≤ 60 KB gzipped | — | — | — |
 | AC-56 | browser (main session) | contrast over effects | — | — | — |
 | AC-57 | red-first integration + e2e | MIT components only, credit shown | — | — | — |
+| AC-58 | red-first unit | type colours ≥ 4.5:1 in both themes | — | — | — |
 
 ## Changelog
 
@@ -341,3 +345,4 @@ Behaviour-level shape of the published index (snake_case JSON); field names may 
 |---|---|---|
 | 2026-10-14 | Initial draft (spec-creator, create mode) | Owner decision to add search, install builder, trust profile and cost estimate to the Pages catalog |
 | 2026-10-14 | Recorded owner decisions Q-1..Q-14; AC-6 and AC-7 changed from "fail" to "read" per Claude Code docs; added section I (shader effects, AC-49..AC-57) | Owner chose MiniSearch + vanilla + active shader effects, chars/4, proposed bounds |
+| 2026-10-14 | Closed Q-15 and Q-16, added AC-58 (type colour contrast), recorded Playwright + axe for e2e; status approved | Owner approval and planner gate |
