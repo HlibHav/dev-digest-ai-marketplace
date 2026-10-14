@@ -63,7 +63,8 @@ case "/$OUT/" in */./*|*/../*) refuse "contains . or .. segments" ;; esac
 case "$OUT" in /*) ;; *) OUT="$PWD/$OUT" ;; esac
 OUT_REAL=$(canonical "$OUT")
 TOP=$(canonical "$(git rev-parse --show-toplevel)")
-for keep in "$TOP" "$(canonical "$HOME")"; do
+HOME_REAL=$(canonical "$HOME")
+for keep in "$TOP" "$HOME_REAL"; do
   case "$keep/" in "$OUT_REAL"/*) refuse "is or contains $keep" ;; esac
 done
 allowed=0
@@ -72,12 +73,18 @@ case "$OUT_REAL" in
   "$TOP"/*) ;;
   *)
     for base in "${TMPDIR:-/tmp}" /tmp; do
-      case "$OUT_REAL" in "$(canonical "$base")"/?*) allowed=1 ;; esac
+      base_real=$(canonical "$base")
+      # A temp base of /, $HOME or an ancestor of $HOME would allow far too much: ignore it.
+      [ -n "$base_real" ] || continue
+      case "$HOME_REAL/" in "$base_real"/*) continue ;; esac
+      case "$OUT_REAL" in "$base_real"/?*) allowed=1 ;; esac
     done
     ;;
 esac
 [ "$allowed" -eq 1 ] || refuse "must be inside the system temp folder or the repo's .tmp/"
 
+# Remove the path that was checked, not the one that was typed.
+OUT=$OUT_REAL
 rm -rf "$OUT"
 mkdir -p "$OUT/hunks"
 

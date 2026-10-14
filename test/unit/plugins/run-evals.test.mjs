@@ -310,7 +310,8 @@ test('buildClaudeArgs uses acceptEdits with an allowlist, not bypassPermissions'
   assert.ok(allowed.includes('Agent') && allowed.includes('Bash(npm test:*)'));
   assert.ok(allowed.includes('Bash(bash /repo/plugins/engineering-paved-path/skills/review-bundle/scripts/review-bundle.sh:*)'));
   assert.ok(!allowed.includes('Bash(bash:*)'), 'any bash script is allowed');
-  assert.ok(!allowed.some((t) => /^(Bash|WebFetch|WebSearch)$/.test(t)), 'a bare Bash or web tool is allowed');
+  assert.ok(!allowed.some((t) => /^(Bash|WebFetch|WebSearch|Read|Write|Edit|MultiEdit|Glob|Grep)$/.test(t)), 'an unscoped Bash, file or web tool is allowed');
+  assert.ok(!allowed.some((t) => t.startsWith('Bash(git grep')), 'git grep -O runs a program');
 });
 
 test('snapshotFiles records a symlink by its target without following it, and skips non-regular files', () => {

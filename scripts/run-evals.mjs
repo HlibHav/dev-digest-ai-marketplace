@@ -29,8 +29,9 @@
  *   --permission-mode acceptEdits + --allowedTools allowedTools()   headless runs cannot answer
  *                                 prompts, so anything outside the allowlist is denied, not asked:
  *                                 edits inside the temp repo, file reads and search, Agent/Skill,
- *                                 `npm test`/`node --test`, run-plan's git and review-bundle.sh.
- *                                 No web tools, no other shell. Denials land in each run record.
+ *                                 `npm test`/`node --test`, run-plan's git and review-bundle.sh;
+ *                                 no web tools. Not a sandbox: see allowedTools(). Denials land in
+ *                                 each run record.
  *   env = evalEnv()               an allowlist of the parent environment: PATH, HOME, locale, temp,
  *                                 proxy and CA variables, and the Claude auth variables. Every other
  *                                 inherited variable (GITHUB_TOKEN, cloud keys, ...) is dropped.
@@ -380,16 +381,22 @@ export function prepareProject(fixtureDir, setupFiles = {}) {
 }
 
 /**
- * What a headless run may do without a prompt; everything else is denied. Bash is limited to the
- * fixture's test command, the git that run-plan needs (read, branch, add, commit) and the
- * review-bundle script of the loaded paved-path plugin.
+ * Tools a headless run may use without a prompt; everything else is denied. File tools are not
+ * listed: acceptEdits accepts edits inside the cwd (the temp repo) and reads there need no rule, so
+ * a read or write outside it is denied. Bash is limited to the fixture's test command, the git
+ * that run-plan needs (read, branch, add, commit) and the loaded review-bundle script. No `git
+ * grep` (its -O runs a program); the agents have the Grep tool.
+ *
+ * This suppresses prompts; it is not a sandbox. `npm test` runs code the model wrote, git takes
+ * `--output`, and a hook in the temp repo would run on commit. Treat a run as executing untrusted
+ * code with your login and network.
  */
 export function allowedTools(pluginRoot = REPO_ROOT) {
   const bundle = join(pluginRoot, 'plugins/engineering-paved-path/skills/review-bundle/scripts/review-bundle.sh');
   return [
-    'Read', 'Glob', 'Grep', 'Write', 'Edit', 'MultiEdit', 'TodoWrite', 'Agent', 'Task', 'Skill',
+    'TodoWrite', 'Agent', 'Task', 'Skill',
     'Bash(npm test:*)', 'Bash(node --test:*)', `Bash(bash ${bundle}:*)`,
-    ...['diff', 'log', 'show', 'status', 'rev-parse', 'merge-base', 'ls-files', 'blame', 'grep',
+    ...['diff', 'log', 'show', 'status', 'rev-parse', 'merge-base', 'ls-files', 'blame',
       'checkout -b', 'switch -c', 'branch', 'add', 'commit'].map((c) => `Bash(git ${c}:*)`),
   ];
 }

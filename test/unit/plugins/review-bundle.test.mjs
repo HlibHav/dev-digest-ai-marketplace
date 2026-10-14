@@ -77,3 +77,19 @@ test('a dangerous out-dir is refused and nothing is removed', () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('a TMPDIR of / or $HOME does not widen what may be removed', () => {
+  const dir = makeRepo();
+  const victim = mkdtempSync(join(homedir(), '.review-bundle-victim-'));
+  writeFileSync(join(victim, 'file'), 'x');
+  try {
+    for (const TMPDIR of ['/', homedir()]) {
+      const r = bundle(dir, victim, { TMPDIR });
+      assert.equal(r.status, 2, `TMPDIR=${TMPDIR} let ${victim} through:\n${r.stdout}${r.stderr}`);
+      assert.ok(existsSync(join(victim, 'file')), `TMPDIR=${TMPDIR}: victim removed`);
+    }
+  } finally {
+    rmSync(victim, { recursive: true, force: true });
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

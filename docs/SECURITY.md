@@ -11,6 +11,7 @@ Consequences for this repo:
 - Every plugin change is reviewed by a code owner before it reaches `main`.
 - Consumers should read a plugin before installing it, and should pin or review updates for plugins they depend on.
 - A release is public the moment it is tagged and pushed, so the review happens before the merge, not after.
+- The eval runner (`scripts/run-evals.mjs`) runs `claude -p` with `acceptEdits`, a tool allowlist and a reduced environment, in a throwaway repo. It is still not a sandbox: the tests a run executes are code the model wrote. Details and the residual risk: [the evals README](../plugins/sdd-engineering/evals/README.md#isolation).
 
 ## Forbidden
 
