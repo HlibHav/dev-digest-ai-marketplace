@@ -36,12 +36,12 @@ test('every catalog plugin dir exists with a manifest that matches its entry', (
   }
 });
 
-test('every dependency names a catalog plugin with a tilde range', () => {
+test('every dependency names a catalog plugin with a caret range', () => {
   const names = new Set(catalog().plugins.map((p) => p.name));
   for (const n of names) {
     for (const dep of manifest(n).dependencies ?? []) {
       assert.ok(names.has(dep.name), `${n} depends on unknown ${dep.name}`);
-      assert.match(dep.version, /^~\d+\.\d+\.\d+$/, `${n} -> ${dep.name} range`);
+      assert.match(dep.version, /^\^\d+\.\d+\.\d+$/, `${n} -> ${dep.name} range`);
     }
   }
 });
@@ -93,8 +93,8 @@ test('delta carries script and onerror payloads in a skill description', () => {
 
 test('epsilon and suite have no artifacts', () => {
   for (const n of ['epsilon', 'suite']) {
-    const entries = readdirSync(join(fx, 'plugins', n)).filter((f) => f !== '.claude-plugin' && f !== 'README.md');
-    assert.deepEqual(entries, [], `${n} must hold only a manifest and a README`);
+    const entries = readdirSync(join(fx, 'plugins', n)).filter((f) => !['.claude-plugin', 'README.md', 'CHANGELOG.md', 'COMPATIBILITY.md', 'LICENSE'].includes(f));
+    assert.deepEqual(entries, [], `${n} must hold only a manifest, a README, a changelog, a compatibility note and a license`);
   }
 });
 

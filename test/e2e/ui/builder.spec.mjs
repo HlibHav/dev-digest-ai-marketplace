@@ -52,7 +52,7 @@ test('AC-30, AC-31: two copy buttons, the ranges and the range note', async ({ p
   await box(page, 'suite').check();
   const buttons = page.locator('#builder button[data-copy]');
   await expect(buttons).toHaveCount(2);
-  await expect(page.locator('#builder')).toContainText('~0.2.0 (declared by gamma)');
+  await expect(page.locator('#builder')).toContainText('^0.2.0 (declared by gamma)');
   await expect(page.locator('#builder .range-note')).toContainText('<plugin>--v<semver> release tags');
   await expect(page.locator('#builder .range-note')).toContainText('not checked by the site');
 

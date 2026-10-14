@@ -14,7 +14,10 @@ Compact JSON with a trailing newline. The index is an object, not a bare array.
 
 - `schema_version`: `1`. `marketplace`: `dev-digest-ai-marketplace`.
 - `plugins[]` keeps catalog order. Each entry:
-  `{ name, version, description, category, tags[], dependencies: [{name, range}], install_commands[], trust, cost }`
+  `{ name, version, description, category, tags[], dependencies: [{name, range}], install_commands[], compatibility, changelog[], trust, cost }`
+  - `dependencies[].range` is a `^` or `~` range. plugin.json may spell a dependency as `{ "name", "version" }` or as `"name@marketplace@^x.y.z"`; both normalise to `{name, range}`. `check-repo` additionally requires the object form and a `^` range, because Claude Code ignores the range in the string form.
+  - `compatibility`: `{ claudeCode: ">=x.y.z" }` or `null`. Read from the first `Claude Code >=x.y.z` line of the plugin's `COMPATIBILITY.md` (backticks and spaces allowed); `null` when the file or the line is absent.
+  - `changelog`: `Array<{ version, date: string|null, notes: string }>`, newest first (file order), `[]` when `CHANGELOG.md` is absent. A heading is `## x.y.z`, optionally followed by ` — YYYY-MM-DD`, ` - YYYY-MM-DD` or ` (YYYY-MM-DD)`. `notes` is the bullet lines under the heading with markdown markers and backticks stripped, joined with `\n` and capped at 600 characters (whole lines first; a single oversized line is cut and ends with `…`).
 - `artifacts[]` is sorted by plugin order, then type order (`plugin`, `skill`, `agent`, `command`, `hook`, `mcp_server`), then name. Each entry:
   `{ type, name, plugin, description, body_excerpt, source_path, install_commands[] }`
   - `body_excerpt` is at most 4000 characters; the full body still counts for cost.

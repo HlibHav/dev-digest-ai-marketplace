@@ -5,6 +5,6 @@
   "author": { "name": "fixture" },
   "license": "MIT",
   "dependencies": [
-    { "name": "delta", "version": "~0.2.0" }
+    { "name": "delta", "version": "^0.2.0" }
   ]
 }

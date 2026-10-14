@@ -1,10 +1,18 @@
 #!/usr/bin/env node
 // Repo invariants that `claude plugin validate` does not cover.
-import { existsSync, lstatSync, readFileSync, readdirSync, readlinkSync } from 'node:fs';
+import { existsSync, lstatSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { findCycle, parseDependency } from './lib/deps.mjs';
+import { BuildError } from './lib/errors.mjs';
+import { firstChangelogVersion, parseCompatibility } from './lib/plugin-docs.mjs';
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+// Usage: node scripts/check-repo.mjs [--root <dir>]   (--root exists so tests can point at a bad fixture)
+const argv = process.argv.slice(2);
+const rootFlag = argv.indexOf('--root');
+const root = rootFlag >= 0 && argv[rootFlag + 1]
+  ? resolve(argv[rootFlag + 1])
+  : resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const violations = [];
 const fail = (path, rule) => violations.push(`${path}: ${rule}`);
 
@@ -26,6 +34,9 @@ if (catalog && !Array.isArray(catalog.plugins)) fail(catalogPath, '"plugins" mus
 
 const catalogNames = new Set(entries.map((e) => e?.name).filter((n) => typeof n === 'string'));
 const listedDirs = new Set();
+const depEdges = new Map(); // plugin name -> dependency names that exist in the catalog
+const PLUGIN_FILES = ['CHANGELOG.md', 'COMPATIBILITY.md', 'LICENSE'];
+const GUARD_CANONICAL = 'plugins/engineering-paved-path/scripts/agent-guard.py';
 
 for (const entry of entries) {
   const label = `${catalogPath}#${entry?.name ?? '?'}`;
@@ -47,13 +58,49 @@ for (const entry of entries) {
   if (manifest.name !== entry.name) fail(manifestRel, `name "${manifest.name}" differs from catalog name "${entry.name}"`);
   if (typeof manifest.version !== 'string' || !SEMVER.test(manifest.version)) fail(manifestRel, 'version must be a semver string');
 
-  for (const dep of manifest.dependencies ?? []) {
-    const depName = typeof dep === 'string' ? dep : dep?.name;
-    if (!catalogNames.has(depName)) fail(manifestRel, `dependency "${depName}" is not in the catalog`);
+  const deps = manifest.dependencies ?? [];
+  if (!Array.isArray(deps)) fail(manifestRel, '"dependencies" must be an array');
+  else {
+    const edges = [];
+    deps.forEach((dep, i) => {
+      // Claude Code 2.1.296 ignores the range in the "name@marketplace@^x" string form (see the
+      // dependency-form ADR), so only the object form is accepted in this marketplace.
+      if (typeof dep === 'string') {
+        fail(manifestRel, `dependency "${dep}": use the object form {"name", "version"}; the string form's range is not enforced`);
+        return;
+      }
+      let parsed;
+      try {
+        parsed = parseDependency(dep, manifestRel, i);
+      } catch (e) {
+        if (!(e instanceof BuildError)) throw e;
+        fail(manifestRel, e.rule);
+        return;
+      }
+      if (!parsed.range.startsWith('^')) fail(manifestRel, `dependency "${parsed.name}": range "${parsed.range}" must start with ^`);
+      if (!catalogNames.has(parsed.name)) fail(manifestRel, `dependency "${parsed.name}" is not in the catalog`);
+      else edges.push(parsed.name);
+    });
+    depEdges.set(entry.name, edges);
   }
 
   const pluginRel = entry.source.replace(/^\.\//, '');
   if (!existsSync(join(dir, 'README.md'))) fail(`${pluginRel}/README.md`, 'plugin README.md missing');
+  for (const f of PLUGIN_FILES) {
+    if (!existsSync(join(dir, f))) fail(`${pluginRel}/${f}`, `plugin ${f} missing`);
+  }
+  const changelogFile = join(dir, 'CHANGELOG.md');
+  if (existsSync(changelogFile)) {
+    const first = firstChangelogVersion(readFileSync(changelogFile, 'utf8'));
+    if (first === null) fail(`${pluginRel}/CHANGELOG.md`, 'no "## x.y.z" version heading');
+    else if (first !== manifest.version) {
+      fail(`${pluginRel}/CHANGELOG.md`, `first version heading ${first} differs from plugin.json version ${manifest.version}`);
+    }
+  }
+  const compatFile = join(dir, 'COMPATIBILITY.md');
+  if (existsSync(compatFile) && !parseCompatibility(readFileSync(compatFile, 'utf8'))) {
+    fail(`${pluginRel}/COMPATIBILITY.md`, 'no Claude Code range line such as "Claude Code >=2.1.0"');
+  }
   if (existsSync(join(dir, 'CLAUDE.md'))) fail(`${pluginRel}/CLAUDE.md`, 'CLAUDE.md is not allowed at a plugin root');
   if (existsSync(join(dir, 'bin'))) fail(`${pluginRel}/bin`, 'bin/ is not allowed at a plugin root');
   const meta = join(dir, '.claude-plugin');
@@ -73,20 +120,31 @@ if (isDir(pluginsDir)) {
   }
 }
 
-// Absolute paths in text files and symlinks that escape the repo.
+const cycle = findCycle(depEdges);
+if (cycle) fail(catalogPath, `dependency cycle: ${cycle.cycle}`);
+
+// Every copy of the agent guard is byte-identical to the paved-path original.
+const guardCanonical = join(root, GUARD_CANONICAL);
+if (isDir(pluginsDir)) {
+  for (const d of readdirSync(pluginsDir, { withFileTypes: true })) {
+    const copy = join(pluginsDir, d.name, 'scripts', 'agent-guard.py');
+    if (!d.isDirectory() || !existsSync(copy) || resolve(copy) === resolve(guardCanonical)) continue;
+    const rel = `plugins/${d.name}/scripts/agent-guard.py`;
+    if (!existsSync(guardCanonical)) fail(rel, `canonical ${GUARD_CANONICAL} is missing`);
+    else if (!readFileSync(copy).equals(readFileSync(guardCanonical))) fail(rel, `differs from ${GUARD_CANONICAL} (copies must be byte-identical)`);
+  }
+}
+
+// Absolute paths in text files; no symlinks anywhere under plugins/.
 const ABS_PATH = /\/Users\/|\/home\/|(?:^|[^A-Za-z0-9_\\])[A-Za-z]:\\/i;
 const SKIP_DIRS = new Set(['.git', 'node_modules', 'site', '.tmp', 'test-results', 'playwright-report']);
-const rootPrefix = root + sep;
 
 function walk(dir) {
   for (const d of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, d.name);
     const rel = relative(root, full).split(sep).join('/');
     if (d.isSymbolicLink()) {
-      if (rel.startsWith('plugins/')) {
-        const target = resolve(dirname(full), readlinkSync(full));
-        if (target !== root && !target.startsWith(rootPrefix)) fail(rel, 'symlink points outside the repo');
-      }
+      if (rel.startsWith('plugins/')) fail(rel, 'symlinks are not allowed under plugins/');
       continue;
     }
     if (d.isDirectory()) {
