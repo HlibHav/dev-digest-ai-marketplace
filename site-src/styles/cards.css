@@ -89,7 +89,6 @@
 .copy-btn.is-copied { background: var(--card-bg); border-style: dashed; }
 .btn-primary { background: var(--text); color: var(--page-bg); border-color: var(--text); }
 .btn-primary:hover { background: color-mix(in srgb, var(--text) 86%, var(--page-bg)); }
-.is-quiet { background: transparent; }
 .add-cmd .copy-btn { min-height: 30px; background: var(--search-bg); color: var(--text); }
 
 /* custom checkbox used by .add-set and the builder */
@@ -162,21 +161,19 @@
   background: var(--code-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 10px; }
 .cost-figures { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
 .cost-figure { padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); display: flex; flex-direction: column; gap: 2px; }
-.cost-amount { font-size: var(--fs-lg); font-weight: 600; }
-.cost-when { font-size: var(--fs-sm); color: var(--text-muted); }
 
 @media (min-width: 640px) {
   /* free-text results: one row per entry */
   .grid.is-list .card {
     display: grid; grid-template-columns: minmax(0, 15rem) minmax(0, 1fr); column-gap: var(--space-5); row-gap: 8px; align-items: start;
-    grid-template-areas: "head desc" "title desc" "rel desc" "req actions" "trust trust" "fb fb";
+    grid-template-areas: "head head" "title desc" "rel desc" "req actions" "trust trust" "fb fb";
   }
   .grid.is-list .card-head { grid-area: head; }
   .grid.is-list .card-title { grid-area: title; }
   .grid.is-list .card-desc { grid-area: desc; }
   .grid.is-list .owner, .grid.is-list .contents { grid-area: rel; justify-self: start; }
   .grid.is-list .requires { grid-area: req; }
-  .grid.is-list .card-actions { grid-area: actions; margin-top: 0; }
+  .grid.is-list .card-actions { grid-area: actions; margin-top: 0; justify-self: start; }
   .grid.is-list .trust-cost { grid-area: trust; }
   .grid.is-list .copy-fallback { grid-area: fb; }
   .trust-body { grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: var(--space-6); }

@@ -274,3 +274,32 @@ for (const [width, height] of [[1280, 800], [375, 800]]) {
     });
   }
 }
+
+test.describe('polish', () => {
+  test.use({ viewport: { width: 1280, height: 900 } });
+
+  test('the entry count is shown once, in the live status line', async ({ page }) => {
+    await open(page);
+    await expect(page.locator('#catalog-title .count')).toBeHidden();
+    await expect(page.locator('#result-count')).toHaveText(/23 entries/);
+  });
+
+  test('the search icon is a drawn magnifier, hidden from assistive tech', async ({ page }) => {
+    await open(page);
+    const icon = page.locator('svg.search-icon');
+    await expect(icon).toBeVisible();
+    await expect(icon).toHaveAttribute('aria-hidden', 'true');
+    await expect(icon.locator('circle')).toHaveCount(1);
+  });
+
+  test('in list mode the description starts on the name row', async ({ page }) => {
+    await open(page, '?q=architecture+review');
+    const card = page.locator('[data-fx-cards].is-list [data-card]').first();
+    await expect(card).toBeVisible();
+    const [title, desc] = await Promise.all([
+      card.locator('.card-title').boundingBox(),
+      card.locator('.card-desc').boundingBox(),
+    ]);
+    expect(Math.abs(desc.y - title.y)).toBeLessThan(12);
+  });
+});

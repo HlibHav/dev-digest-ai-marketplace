@@ -73,7 +73,6 @@
 .no-results-title, .load-error-title { font-size: var(--fs-lg); font-weight: 650; }
 .no-results p, .load-error p, .index-loading p { color: var(--text-muted); font-size: 14.5px; max-width: 62ch; }
 .state-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
-.link-btn { background: none; border: 0; padding: 0 4px; min-height: 34px; font-size: var(--fs-sm); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; color: var(--text); }
 .index-loading { flex-direction: row; align-items: center; padding: 12px 16px; border-style: solid; }
 .spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border-strong); border-top-color: var(--text); flex: none; }
 
@@ -85,7 +84,6 @@
 .static-item p { font-size: 14.5px; }
 .static-item .meta { font-size: var(--fs-sm); }
 .static-cmd { font-size: var(--fs-xs); background: var(--code-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 10px; overflow-wrap: anywhere; }
-.is-dimmed { opacity: .72; }
 .section-title { font-size: var(--fs-lg); font-weight: 650; }
 .notice { font-size: var(--fs-sm); color: var(--text-muted); padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card-bg); }
 

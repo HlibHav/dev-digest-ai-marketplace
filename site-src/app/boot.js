@@ -85,7 +85,9 @@ export async function boot({ doc, win, fetchFn, curatedTexts, loadEffects }) {
 
     app.replaceChildren();
     input.value = state.q;
+    // The live status line carries the count once the app is up; the heading count is for the no-JS page.
     const countSpan = title?.querySelector('.count') ?? null;
+    if (countSpan) countSpan.hidden = true;
     let builderView = null;
     const builderCtx = {
       state: (name) => builderView?.state(name) ?? { checked: false, locked: false },
@@ -108,9 +110,7 @@ export async function boot({ doc, win, fetchFn, curatedTexts, loadEffects }) {
         contents,
         builder: builderCtx,
         reveal: (name) => view.reveal(name),
-        onRendered: (eff) => {
-          if (countSpan) countSpan.textContent = `${eff.hits.length} ${eff.hits.length === 1 ? 'entry' : 'entries'}`;
-        },
+        onRendered: () => {},
       },
       onChange: ({ q, types }) => {
         state.q = q;

@@ -63,7 +63,7 @@ ${css}
 <form id="search-form" class="search" role="search" hidden>
 <label for="q">${SEARCH_LABEL}</label>
 <div class="search-field">
-<span class="search-icon" aria-hidden="true"></span>
+<svg class="search-icon" aria-hidden="true" focusable="false" viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="5.75"/><path d="M12.75 12.75 17 17"/></svg>
 <input id="q" class="search-input" name="q" type="search" maxlength="200" autocomplete="off" spellcheck="false">
 <button type="button" class="search-clear" id="search-clear" aria-label="Clear the search" hidden>×</button>
 <kbd class="kbd" aria-hidden="true">/</kbd>
