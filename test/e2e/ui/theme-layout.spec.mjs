@@ -21,7 +21,7 @@ for (const scheme of ['light', 'dark']) {
     test(`AC-48: no horizontal scroll at 320 px (${scheme})`, async ({ page }) => {
       await page.setViewportSize({ width: 320, height: 700 });
       await page.goto(server.url);
-      await expect(page.locator('#static-list [data-card]').first()).toBeVisible();
+      await expect(page.locator('[data-card]:visible').first()).toBeVisible();
       const overflow = await page.evaluate(() => ({
         doc: document.documentElement.scrollWidth - document.documentElement.clientWidth,
         body: document.body.scrollWidth - document.documentElement.clientWidth,
@@ -32,7 +32,7 @@ for (const scheme of ['light', 'dark']) {
 
     test(`AC-48: axe finds no color-contrast violation (${scheme})`, async ({ page }) => {
       await page.goto(server.url);
-      await expect(page.locator('#static-list [data-card]').first()).toBeVisible();
+      await expect(page.locator('[data-card]:visible').first()).toBeVisible();
       const results = await new AxeBuilder({ page }).withRules(['color-contrast']).analyze();
       expect(results.violations).toEqual([]);
     });
@@ -47,7 +47,7 @@ for (const scheme of ['light', 'dark']) {
 
 test('card badges take their colour from --type-color', async ({ page }) => {
   await page.goto(server.url);
-  const card = page.locator('#static-list [data-card][data-type="plugin"]').first();
+  const card = page.locator('[data-card][data-type="plugin"]:visible').first();
   const color = await card.evaluate((el) => getComputedStyle(el).getPropertyValue('--type-color').trim());
   expect(color).toMatch(/^#[0-9a-f]{6}$/i);
 });
