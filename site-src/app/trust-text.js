@@ -1,18 +1,17 @@
 // Plain-text rendering of a plugin's trust profile. URLs stay text, never links (AC-36).
-export const TRUST_NOTICE = 'This profile describes what this plugin declares, not a security audit.';
-export const TRUST_EMPTY = 'This plugin declares no hooks, MCP servers or scripts.';
-
-const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+import { t } from '../i18n/t.js';
+export const TRUST_NOTICE = t('trust.notice');
+export const TRUST_EMPTY = t('trust.empty');
 
 function hookLine(h) {
-  const matcher = h.matcher === null ? 'no matcher' : `matcher: ${h.matcher}`;
-  return `Hook ${h.event}${h.broad ? ' (broad)' : ''}, ${matcher}, from ${h.source_path}`;
+  const matcher = h.matcher === null ? t('trust.noMatcher') : t('trust.matcher', { matcher: h.matcher });
+  return t('trust.hookLine', { event: h.event, broad: h.broad ? ` ${t('trust.broadMark')}` : '', matcher, source: h.source_path });
 }
 
 function serverLine(s) {
   const what = s.transport === 'url' ? s.url : [s.command, ...s.args].join(' ');
-  const kind = s.transport === 'url' ? 'URL' : 'local command';
-  return `MCP server ${s.name}, ${kind}: ${what}${s.non_loopback ? ' (non-loopback)' : ''}, from ${s.source_path}`;
+  const kind = s.transport === 'url' ? t('trust.kindUrl') : t('trust.kindCommand');
+  return t('trust.serverLine', { name: s.name, kind, what, nonLoopback: s.non_loopback ? ` ${t('trust.nonLoopbackMark')}` : '', source: s.source_path });
 }
 
 export function describeTrust(trust) {
@@ -24,16 +23,16 @@ export function describeTrust(trust) {
   const parts = [];
   if (hooks.length) {
     const broad = hooks.filter((h) => h.broad).length;
-    parts.push(`${plural(hooks.length, 'hook')}${broad ? ` (${broad} broad)` : ''}`);
+    parts.push(`${t('trust.hooksPart', { count: hooks.length })}${broad ? ` ${t('trust.broadCount', { count: broad })}` : ''}`);
   }
   if (servers.length) {
     const far = servers.filter((s) => s.non_loopback).length;
-    parts.push(`${plural(servers.length, 'MCP server')}${far ? ` (${far} non-loopback)` : ''}`);
+    parts.push(`${t('trust.serversPart', { count: servers.length })}${far ? ` ${t('trust.nonLoopbackCount', { count: far })}` : ''}`);
   }
-  if (trust.has_scripts) parts.push('a scripts/ folder');
+  if (trust.has_scripts) parts.push(t('trust.scriptsPart'));
   const lines = [...hooks.map(hookLine), ...servers.map(serverLine)];
-  if (trust.has_scripts) lines.push('Contains a scripts/ folder');
-  return { empty: false, sentence: `Declares ${parts.join(', ')}.`, lines };
+  if (trust.has_scripts) lines.push(t('trust.scriptsLine'));
+  return { empty: false, sentence: t('trust.declares', { parts: parts.join(', ') }), lines };
 }
 
 /**
@@ -45,19 +44,19 @@ export function trustRows(trust) {
   const hooks = trust.hooks ?? [];
   const servers = trust.mcp_servers ?? [];
   const flags = [
-    ...hooks.map((hook) => (hook.broad ? ['broad matcher'] : [])),
-    ...servers.map((server) => (server.non_loopback ? ['non-loopback'] : [])),
+    ...hooks.map((hook) => (hook.broad ? [t('trust.flagBroad')] : [])),
+    ...servers.map((server) => (server.non_loopback ? [t('trust.flagNonLoopback')] : [])),
   ];
-  if (trust.has_scripts) flags.push(['scripts']);
+  if (trust.has_scripts) flags.push([t('trust.flagScripts')]);
   return lines.map((text, i) => ({ text, flags: flags[i] ?? [] }));
 }
 
-const fmt = (n) => n.toLocaleString('en-US');
+const fmt = (n) => n.toLocaleString(t('meta.locale'));
 
 /** The facts shown on the closed line of a plugin's disclosure: what it declares and what it loads up front. */
 export function describeFacts(trust, cost) {
-  const t = describeTrust(trust);
-  const declared = t.empty ? 'Declares nothing' : t.sentence.replace(/\.$/, '');
-  const loaded = cost?.always_loaded_tokens > 0 ? `about ${fmt(cost.always_loaded_tokens)} tokens always loaded` : 'no always-loaded content';
-  return `${declared} · ${loaded}`;
+  const tr = describeTrust(trust);
+  const declared = tr.empty ? t('trust.declaresNothing') : tr.sentence.replace(/\.$/, '');
+  const loaded = cost?.always_loaded_tokens > 0 ? t('trust.loadedTokens', { tokens: fmt(cost.always_loaded_tokens) }) : t('trust.loadedNone');
+  return t('trust.facts', { declared, loaded });
 }

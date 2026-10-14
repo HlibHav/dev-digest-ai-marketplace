@@ -186,3 +186,6 @@
   .owner { min-height: 36px; }
 }
 .card > .owner { align-self: flex-start; }
+
+.whats-new { font-size: var(--fs-sm); color: var(--text-muted); }
+.whats-new b { color: var(--text); font-weight: 600; }

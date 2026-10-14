@@ -3,16 +3,17 @@
 import { h } from './safe-dom.js';
 import { RANGE_NOTE, resolveSelection, settingsSnippet, cliCommands } from './builder.js';
 import { copyAndAnnounce } from './status.js';
+import { t } from '../i18n/t.js';
 
-export const GUIDANCE = 'Select one or more plugins to get the settings.json snippet and the install commands.';
-export const AUTO_LABEL = 'added automatically';
+export const GUIDANCE = t('builder.guidance');
+export const AUTO_LABEL = t('builder.auto');
 
 /** Row note: "added automatically, required by beta, suite". Empty when the plugin is not in the set. */
 export function rowNote(entry) {
   if (!entry) return '';
   const parts = [];
   if (entry.auto) parts.push(AUTO_LABEL);
-  if (entry.requiredBy.length) parts.push(`required by ${entry.requiredBy.join(', ')}`);
+  if (entry.requiredBy.length) parts.push(t('builder.requiredBy', { names: entry.requiredBy.join(', ') }));
   return parts.join(', ');
 }
 
@@ -36,14 +37,14 @@ export function createBuilderView({ doc, win, host, plugins, selected: initial =
     const input = h(doc, 'input', { type: 'checkbox', class: 'check', name: 'plugin', value: plugin.name, 'aria-describedby': noteId });
     const note = h(doc, 'span', { class: 'row-note', id: noteId });
     input.addEventListener('change', () => toggle(plugin.name, input.checked));
-    const li = h(doc, 'li', { class: 'builder-row' }, h(doc, 'label', {}, input, ' ', h(doc, 'span', { class: 'plugin-name' }, plugin.name), ' ', h(doc, 'span', { class: 'version' }, `v${plugin.version}`)), ' ', note);
+    const li = h(doc, 'li', { class: 'builder-row' }, h(doc, 'label', {}, input, ' ', h(doc, 'span', { class: 'plugin-name' }, plugin.name), ' ', h(doc, 'span', { class: 'version' }, t('card.version', { version: plugin.version }))), ' ', note);
     rows.set(plugin.name, { input, note, li });
     list.append(li);
   });
 
   const output = h(doc, 'div', { class: 'builder-result' });
   host.append(
-    h(doc, 'p', { class: 'builder-intro' }, 'Tick the plugins you want. Their dependencies are added for you.'),
+    h(doc, 'p', { class: 'builder-intro' }, t('builder.intro')),
     list,
     output,
   );
@@ -72,16 +73,16 @@ export function createBuilderView({ doc, win, host, plugins, selected: initial =
         'li',
         { 'data-entry': e.name },
         h(doc, 'code', {}, e.name),
-        e.auto ? ` (${AUTO_LABEL})` : null,
-        e.ranges.length ? `: ${e.ranges.map((r) => `${r.range} (declared by ${r.from})`).join(', ')}` : null,
+        e.auto ? ` ${t('builder.autoNote', { label: AUTO_LABEL })}` : null,
+        e.ranges.length ? `: ${e.ranges.map((r) => t('builder.declaredBy', { range: r.range, from: r.from })).join(', ')}` : null,
       ),
     );
     output.replaceChildren(
-      h(doc, 'h3', { class: 'section-title' }, 'Your set'),
+      h(doc, 'h3', { class: 'section-title' }, t('builder.yourSet')),
       h(doc, 'ul', { class: 'builder-set' }, ...items),
       h(doc, 'p', { class: 'range-note' }, RANGE_NOTE),
-      copyBlock('Install commands', 'Copy commands', 'commands', cliCommands(entries)),
-      copyBlock('.claude/settings.json', 'Copy settings.json snippet', 'snippet', settingsSnippet(entries)),
+      copyBlock(t('builder.installCommands'), t('builder.copyCommands'), 'commands', cliCommands(entries)),
+      copyBlock(t('builder.settingsFile'), t('builder.copySnippet'), 'snippet', settingsSnippet(entries)),
     );
   }
 

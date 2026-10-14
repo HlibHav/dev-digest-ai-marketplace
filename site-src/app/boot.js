@@ -10,8 +10,11 @@ import { createBuilderView, isLocked } from './builder-view.js';
 import { createTray } from './tray.js';
 import { countContents } from './card-view.js';
 import { REPO } from '../contract/index-contract.js';
+import { t } from '../i18n/t.js';
 
-export const RETRY_LABEL = 'Retry loading the search index';
+export const RETRY_LABEL = t('status.retry');
+// Icon glyph, not a translatable word.
+const SYMBOL_ALERT = '!';
 
 const defer = (win, fn) => (typeof win.requestIdleCallback === 'function' ? win.requestIdleCallback(fn, { timeout: 500 }) : win.setTimeout(fn, 1));
 
@@ -56,7 +59,7 @@ export async function boot({ doc, win, fetchFn, curatedTexts, loadEffects }) {
         doc,
         'div',
         { class: 'load-error', role: 'alert' },
-        h(doc, 'span', { class: 'state-icon', 'aria-hidden': 'true' }, '!'),
+        h(doc, 'span', { class: 'state-icon', 'aria-hidden': 'true' }, SYMBOL_ALERT),
         h(doc, 'p', {}, LOAD_ERROR_TEXT),
         h(doc, 'div', { class: 'state-actions' }, retry),
       ),
@@ -135,10 +138,10 @@ export async function boot({ doc, win, fetchFn, curatedTexts, loadEffects }) {
       // The rail, the tray and the install-set boxes on the cards all show the same set.
       onUpdate: (entries) => {
         const n = entries.length;
-        if (countEl) countEl.textContent = n ? `${n} selected` : '';
+        if (countEl) countEl.textContent = n ? t('builder.count', { count: n }) : '';
         if (traySummary) {
           const names = entries.map((e) => e.name);
-          traySummary.textContent = n ? `${n} ${n === 1 ? 'plugin' : 'plugins'}: ${names.slice(0, 3).join(', ')}${n > 3 ? ', …' : ''}` : 'None selected';
+          traySummary.textContent = n ? t('tray.summary', { count: n, names: `${names.slice(0, 3).join(', ')}${n > 3 ? ', …' : ''}` }) : t('tray.none');
         }
         const byName = new Map(entries.map((e) => [e.name, e]));
         for (const box of doc.querySelectorAll('input[data-add-set]')) {
@@ -172,8 +175,8 @@ export async function boot({ doc, win, fetchFn, curatedTexts, loadEffects }) {
     input.addEventListener('input', syncClear);
     doc.addEventListener('keydown', (event) => {
       if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey) return;
-      const t = event.target;
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+      const target = event.target;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable)) return;
       event.preventDefault();
       input.focus();
     });
@@ -185,7 +188,7 @@ export async function boot({ doc, win, fetchFn, curatedTexts, loadEffects }) {
       staticList.hidden = true;
       staticList.removeAttribute('data-fx-cards');
     }
-    if (title?.firstChild) title.firstChild.textContent = 'Catalog ';
+    if (title?.firstChild) title.firstChild.textContent = `${t('catalog.heading')} `;
     app.setAttribute('aria-busy', 'false');
     status.clear();
 

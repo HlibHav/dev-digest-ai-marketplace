@@ -1,5 +1,6 @@
 // Clipboard access with a manual fallback (AC-59).
-export const MANUAL_COPY_MESSAGE = 'Copy is unavailable here. Select the text and copy it manually.';
+import { t } from '../i18n/t.js';
+export const MANUAL_COPY_MESSAGE = t('status.manualCopy');
 
 /** Resolves 'copied', or 'manual' when the Clipboard API is missing or refuses. Never rejects. */
 export async function copyText(text, win) {

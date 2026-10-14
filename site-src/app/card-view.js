@@ -4,26 +4,29 @@ import { highlightRanges, appendHighlighted } from './highlight.js';
 import { MARKETPLACE, REPO } from '../contract/index-contract.js';
 import { copyAndAnnounce } from './status.js';
 import { renderTrustCost } from './trust-view.js';
+import { compatibilityText, whatsNew } from './plugin-facts.js';
+import { t } from '../i18n/t.js';
 
 export const TYPE_LABELS = Object.freeze({
-  plugin: 'plugin',
-  skill: 'skill',
-  agent: 'agent',
-  command: 'command',
-  hook: 'hook',
-  mcp_server: 'MCP server',
+  plugin: t('type.plugin'),
+  skill: t('type.skill'),
+  agent: t('type.agent'),
+  command: t('type.command'),
+  hook: t('type.hook'),
+  mcp_server: t('type.mcpServer'),
 });
-const TYPE_PLURALS = Object.freeze({
-  skill: 'skills',
-  agent: 'agents',
-  command: 'commands',
-  hook: 'hooks',
-  mcp_server: 'MCP servers',
+// One entry per type a plugin can ship; the message holds the singular and plural forms.
+const CONTENT_LABELS = Object.freeze({
+  skill: (count) => t('card.contents.skill', { count }),
+  agent: (count) => t('card.contents.agent', { count }),
+  command: (count) => t('card.contents.command', { count }),
+  hook: (count) => t('card.contents.hook', { count }),
+  mcp_server: (count) => t('card.contents.mcpServer', { count }),
 });
 export const DESCRIPTION_LIMIT = 280;
-export const COPY_LABEL = 'Copy install';
-export const ADD_SET_LABEL = 'In install set';
-export const OWNER_LABEL = 'Installs with';
+export const COPY_LABEL = t('card.copyInstall');
+export const ADD_SET_LABEL = t('card.inInstallSet');
+export const OWNER_LABEL = t('card.installsWith');
 
 /** The two lines AC-21 puts on the clipboard: the marketplace must be added before the plugin installs. */
 export function installLines(pluginName) {
@@ -50,9 +53,9 @@ export function countContents(artifacts) {
 
 /** "2 skills", "1 agent": one entry per type that the plugin ships, in type order. */
 export function contentsEntries(counts) {
-  return Object.keys(TYPE_PLURALS)
+  return Object.keys(CONTENT_LABELS)
     .filter((type) => counts?.[type] > 0)
-    .map((type) => ({ type, text: `${counts[type]} ${counts[type] === 1 ? TYPE_LABELS[type] : TYPE_PLURALS[type]}` }));
+    .map((type) => ({ type, text: CONTENT_LABELS[type](counts[type]) }));
 }
 
 function highlighted(doc, tag, attrs, text, terms) {
@@ -89,7 +92,7 @@ export function createCard(ctx, hit, extraTerms = []) {
           d,
           'span',
           { class: 'meta' },
-          owner ? h(d, 'span', { class: 'version' }, `v${owner.version}`) : null,
+          owner ? h(d, 'span', { class: 'version' }, t('card.version', { version: owner.version })) : null,
           h(d, 'span', { class: 'category' }, item.category),
         )
       : null,
@@ -99,7 +102,7 @@ export function createCard(ctx, hit, extraTerms = []) {
 
   let manual = null;
   const lines = installLines(item.plugin).join('\n');
-  const button = h(d, 'button', { type: 'button', class: 'copy-btn', 'data-copy': 'install', 'aria-label': `${COPY_LABEL} commands for ${item.name}` }, COPY_LABEL);
+  const button = h(d, 'button', { type: 'button', class: 'copy-btn', 'data-copy': 'install', 'aria-label': t('card.copyInstallAria', { name: item.name }) }, COPY_LABEL);
   button.addEventListener('click', () =>
     copyAndAnnounce({
       text: lines,
@@ -108,7 +111,7 @@ export function createCard(ctx, hit, extraTerms = []) {
       onManual: () => {
         if (!manual) {
           manual = h(d, 'pre', { class: 'install manual-copy' }, lines);
-          card.append(h(d, 'div', { class: 'copy-fallback' }, h(d, 'p', {}, 'Select the text and copy it by hand:'), manual));
+          card.append(h(d, 'div', { class: 'copy-fallback' }, h(d, 'p', {}, t('card.manualCopyHint')), manual));
         }
         return manual;
       },
@@ -130,9 +133,13 @@ export function createCard(ctx, hit, extraTerms = []) {
     const entries = contentsEntries(ctx.contents?.get(item.name));
     if (entries.length) {
       card.append(
-        h(d, 'ul', { class: 'contents', 'aria-label': 'Contents' }, ...entries.map((e) => h(d, 'li', { 'data-type': e.type }, h(d, 'span', { class: 'contents-dot' }), e.text))),
+        h(d, 'ul', { class: 'contents', 'aria-label': t('card.contentsAria') }, ...entries.map((e) => h(d, 'li', { 'data-type': e.type }, h(d, 'span', { class: 'contents-dot' }), e.text))),
       );
     }
+    const compat = owner ? compatibilityText(owner) : null;
+    if (compat) card.append(h(d, 'p', { class: 'requires compat' }, compat));
+    const news = owner ? whatsNew(owner) : null;
+    if (news) card.append(h(d, 'p', { class: 'whats-new' }, h(d, 'b', {}, news.title), news.note ? ` ${news.note}` : null));
     const deps = owner?.dependencies ?? [];
     if (deps.length) {
       const parts = [];
@@ -140,7 +147,7 @@ export function createCard(ctx, hit, extraTerms = []) {
         if (i > 0) parts.push(', ');
         parts.push(h(d, 'code', {}, dep.name), ' ', h(d, 'span', { class: 'range' }, dep.range));
       });
-      card.append(h(d, 'p', { class: 'requires' }, 'Requires ', ...parts));
+      card.append(h(d, 'p', { class: 'requires' }, `${t('card.requires')} `, ...parts));
     }
   } else {
     const chip = h(

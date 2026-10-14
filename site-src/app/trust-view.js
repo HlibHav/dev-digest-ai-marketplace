@@ -3,8 +3,9 @@
 import { h } from './safe-dom.js';
 import { TRUST_NOTICE, describeTrust, describeFacts, trustRows } from './trust-text.js';
 import { COST_NOTICE, describeCost } from './cost-text.js';
+import { t } from '../i18n/t.js';
 
-export const DETAILS_SUMMARY = 'Trust and cost';
+export const DETAILS_SUMMARY = t('trust.summary');
 
 const EMPTY_TRUST = { hooks: [], mcp_servers: [], has_scripts: false, network_urls: [] };
 const EMPTY_COST = { always_loaded_tokens: 0, on_invocation_tokens: 0 };
@@ -20,7 +21,7 @@ export function renderTrustCost(doc, plugin) {
     doc,
     'div',
     { class: 'trust' },
-    h(doc, 'p', { class: 'trust-title' }, 'Trust profile'),
+    h(doc, 'p', { class: 'trust-title' }, t('trust.title')),
     h(doc, 'p', { class: 'trust-notice' }, TRUST_NOTICE),
     h(doc, 'p', { class: 'trust-sentence' }, trust.sentence),
     rows.length
@@ -44,7 +45,7 @@ export function renderTrustCost(doc, plugin) {
           doc,
           'div',
           { class: 'trust-urls' },
-          h(doc, 'p', {}, 'Network URLs in hook and MCP configuration (text only):'),
+          h(doc, 'p', {}, t('trust.networkUrls')),
           h(doc, 'ul', { class: 'trust-url-list' }, ...urls.map((u) => h(doc, 'li', {}, h(doc, 'code', {}, u)))),
         )
       : null,
@@ -54,7 +55,7 @@ export function renderTrustCost(doc, plugin) {
     doc,
     'div',
     { class: 'cost' },
-    h(doc, 'p', { class: 'cost-title' }, 'Context cost'),
+    h(doc, 'p', { class: 'cost-title' }, t('cost.title')),
     h(doc, 'div', { class: 'cost-figures' }, ...cost.lines.map((line) => h(doc, 'p', { class: 'cost-figure' }, line))),
     h(doc, 'p', { class: 'cost-notice' }, COST_NOTICE),
   );

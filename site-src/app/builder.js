@@ -1,8 +1,8 @@
 // Install builder: dependency closure, settings snippet and CLI commands. Pure, no DOM.
 import { MARKETPLACE, REPO } from '../contract/index-contract.js';
+import { t } from '../i18n/t.js';
 
-export const RANGE_NOTE =
-  'Version ranges resolve against <plugin>--v<semver> release tags at install time and are not checked by the site.';
+export const RANGE_NOTE = t('builder.rangeNote');
 
 /**
  * Expands `selected` with every transitive dependency.
