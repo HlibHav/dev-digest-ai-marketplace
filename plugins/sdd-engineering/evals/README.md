@@ -44,6 +44,8 @@ assertion with its detail. Cost is the CLI's own `total_cost_usd`.
 | `summarize-repo-no-retro` | negative | "Summarize this repo" does not run `workflow-retro` (manual-only) or any SDD agent |
 | `spec-creator-asks-clarifications` | behavior | A vague request runs `spec-creator`; the session reports its questions, nothing is approved, no code is written |
 | `spec-creator-writes-spec` | behavior | With requirements settled, `spec-creator` writes `specs/*.md` with a spec id, `AC-N` lines in EARS, status `draft`, no code fence in a programming language and no source file path |
+| `spec-creator-requirement-without-ac` | behavior | A mandatory requirement whose behaviour is undecided (an optional `precision` argument) gets no guessed AC and is not dropped: either `needs-answers` and no spec, or a draft that marks it `[NEEDS CLARIFICATION]` |
+| `spec-creator-every-requirement-has-ac` | behavior | The spec has a Requirements coverage section, and the two mandatory requirements that read like a contract or a non-functional note (export from the module entry, no console output) each map to an `AC-N` |
 | `planner-uses-existing-spec` | behavior | `implementation-planner` reads a seeded approved spec and writes a plan that traces AC-1..AC-3 only (no AC-4 or later), names the check command, and leaves the spec byte-identical |
 | `run-plan-chain` (expensive) | behavior | `/sdd-engineering:run-plan` dispatches `implementer`, `plan-verifier` and `architecture-review:architecture-reviewer`, runs no `spec-creator` or planner, and creates `src/clamp.js` |
 
@@ -82,7 +84,7 @@ and so on), which are listed by the probe.
 
 ## Cost
 
-With `haiku` for the session and every subagent, the seven cases cost about $0.08 for one pass
+With `haiku` for the session and every subagent, the first seven cases cost about $0.08 for one pass (measured before 1.1.0 added two spec-creator cases)
 (median run about $0.01, the longest, `run-plan-chain`, about $0.04). Without the forced subagent
 model, `spec-creator` and the planner run on Opus and one pass costs 10 to 20 times more. The
 `maxBudgetUsd` of each case is passed to `--max-budget-usd`.

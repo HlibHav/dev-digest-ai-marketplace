@@ -147,6 +147,78 @@
       }
     },
     {
+      "id": "spec-creator-requirement-without-ac",
+      "kind": "behavior",
+      "describes": "A mandatory requirement whose behaviour is undecided gets no guessed acceptance criterion and is not dropped: spec-creator either returns needs-answers or leaves it as a [NEEDS CLARIFICATION] in a draft spec; never a finished spec without an AC for it.",
+      "prompt": "Use the sdd-engineering:spec-creator subagent to write a spec. Today's date is 2026-10-14. Tier: Lightweight SDD (name it in the brief; the cascade text is not available, this tier is final). Feature: clamp(value, min, max) returns value limited to the inclusive range [min, max]. Settled decisions, do not ask about them: all three arguments are finite numbers; if min is greater than max the call is an error that says so; NaN or non-number input is an error; there is one package, so the spec goes in the root specs folder; no performance requirements; no external inputs. Mandatory requirement, also part of this feature: clamp accepts an optional fourth argument, precision, that rounds the returned value. Write the spec file and report where it is. Do not answer spec-creator's questions yourself and do not guess: if it returns questions, show them to me verbatim and stop.",
+      "maxTurns": 16,
+      "maxBudgetUsd": 0.8,
+      "assertions": {
+        "subagentDispatched": "sdd-engineering:spec-creator",
+        "notDispatched": [
+          "sdd-engineering:implementation-planner",
+          "sdd-engineering:implementer"
+        ],
+        "finalTextRegex": "(?i)needs-answers|NEEDS CLARIFICATION|question",
+        "fileNotContainsRegex": [
+          {
+            "glob": "specs/*.md",
+            "regex": "(?i)status:\\s*\\**\\s*approved"
+          },
+          {
+            "glob": "specs/*.md",
+            "regex": "(?i)^(?![^\\n]*NEEDS CLARIFICATION)[^\\n]*\\bAC-\\d+\\b[^\\n]*\\b(precision|round)"
+          },
+          {
+            "glob": "specs/*.md",
+            "regex": "(?i)(?<![\\s\\S])(?![\\s\\S]*(NEEDS CLARIFICATION[^\\n]*(precision|round)|(precision|round)[^\\n]*NEEDS CLARIFICATION))"
+          }
+        ],
+        "fileNotCreatedGlob": "{src,docs/plans}/**"
+      }
+    },
+    {
+      "id": "spec-creator-every-requirement-has-ac",
+      "kind": "behavior",
+      "describes": "Every mandatory requirement in the brief is listed in the spec's Requirements coverage section and mapped to an acceptance criterion, including ones that read like a contract or a non-functional note (the export from the module entry, the no-console rule).",
+      "prompt": "Use the sdd-engineering:spec-creator subagent to write a spec. Today's date is 2026-10-14. Tier: Lightweight SDD (name it in the brief; the cascade text is not available, this tier is final). Feature: clamp(value, min, max) returns value limited to the inclusive range [min, max]. Settled decisions, do not ask about them: all three arguments are finite numbers; if min is greater than max the call is an error that says so; NaN or non-number input is an error; there is one package, so the spec goes in the root specs folder; no performance requirements; no external inputs. Mandatory requirements, also settled: clamp is exported from the same module entry point as double; clamp never writes to the console, not even when it throws. Write the spec file and report where it is. Do not answer spec-creator's questions yourself and do not guess: if it returns questions, show them to me verbatim and stop.",
+      "maxTurns": 16,
+      "maxBudgetUsd": 0.8,
+      "assertions": {
+        "subagentDispatched": "sdd-engineering:spec-creator",
+        "notDispatched": [
+          "sdd-engineering:implementation-planner",
+          "sdd-engineering:implementer"
+        ],
+        "fileCreatedGlob": "specs/*.md",
+        "fileContainsRegex": [
+          {
+            "glob": "specs/*.md",
+            "regex": "(?im)^#{2,3}\\s*Requirements coverage\\b"
+          },
+          {
+            "glob": "specs/*.md",
+            "regex": "(?i)^\\|[^|\\n]+\\|[^\\n]*\\b(export(s|ed)?|entry[ -]point)\\b[^\\n]*\\|[^\\n]*\\bAC-\\d+\\b"
+          },
+          {
+            "glob": "specs/*.md",
+            "regex": "(?i)^\\|[^|\\n]+\\|[^\\n]*\\bconsole\\b[^\\n]*\\|[^\\n]*\\bAC-\\d+\\b"
+          },
+          {
+            "glob": "specs/*.md",
+            "regex": "(?i)^[^\\n]*\\bAC-\\d+\\b[^\\n]*\\bconsole\\b[^\\n]*\\bshall\\b|^[^\\n]*\\bAC-\\d+\\b[^\\n]*\\bshall\\b[^\\n]*\\bconsole\\b"
+          }
+        ],
+        "fileNotContainsRegex": [
+          {
+            "glob": "specs/*.md",
+            "regex": "(?i)status:\\s*\\**\\s*approved"
+          }
+        ],
+        "fileNotCreatedGlob": "{src,docs/plans}/**"
+      }
+    },
+    {
       "id": "planner-uses-existing-spec",
       "kind": "behavior",
       "describes": "The planner reads the seeded approved spec, traces its plan to the spec's own AC ids only, invents no AC-4 or later, and does not touch the spec.",

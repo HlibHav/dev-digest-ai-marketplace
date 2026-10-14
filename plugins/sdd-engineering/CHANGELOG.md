@@ -2,6 +2,15 @@
 
 All notable changes to this plugin are listed here. Versions follow [SemVer](https://semver.org/); the format is close to [Keep a Changelog](https://keepachangelog.com/).
 
+## 1.1.0 — 2026-10-14
+
+### Added
+- `spec-creator`: a spec is not finished until every mandatory requirement has an acceptance criterion. The agent numbers the mandatory requirements from the brief and the design sources (`R-1`, `R-2`, …), including ones that read like a contract or a non-functional note, and the spec gets a `## Requirements coverage` section that maps each one to its `AC-N` ids. A requirement whose behaviour the sources don't state is a blocking question; a row left with only `[NEEDS CLARIFICATION]` keeps the spec `draft`, makes the report `Status: needs-answers` and marks the planner handoff `not yet`. The self-check and the Spec Report show the coverage count.
+- Evals `spec-creator-requirement-without-ac` (an undecided mandatory requirement gets no guessed AC and is not dropped) and `spec-creator-every-requirement-has-ac` (the coverage section exists and maps the export and no-console requirements to ACs).
+
+### Evidence
+On `claude-sonnet-5-5`, three runs per case. 1.0.2 already turned an undecided requirement into a blocking question (3/3, and 3/3 on Haiku) and already wrote an AC for each settled one, so the gain is that coverage is now explicit and checkable, not a fixed miss. With the coverage assertions, 1.0.2's specs fail 3/3 (no coverage section) and 1.1.0's pass 3/3. The regression cases stay green on 1.1.0: `spec-creator-writes-spec` 3/3, `spec-creator-asks-clarifications` 3/3, `planner-uses-existing-spec` 3/3. Median cost per run $0.126.
+
 ## 1.0.2 — 2026-10-14
 
 ### Changed
