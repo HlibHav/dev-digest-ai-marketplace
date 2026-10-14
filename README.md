@@ -1,15 +1,15 @@
 # dev-digest-ai-marketplace
 
-A Claude Code plugin marketplace with the reusable harness extracted from DevDigest: shared engineering practices, a read-only researcher, an architecture reviewer and a spec-driven workflow that ties them together. It lives in its own repository because the DevDigest product and this harness have different owners and different release cadences. A product change should not force a plugin release, and a plugin fix should not need a product deploy.
+A Claude Code plugin marketplace with a reusable harness for spec-driven development: shared engineering practices, a read-only researcher, an architecture reviewer and a spec-driven workflow that ties them together. The plugins are derived from an internal harness and generalized for any repository. They read your project's own commands and rules instead of assuming a stack.
 
 ## Plugins
 
 | Plugin | Purpose | Depends on |
 |---|---|---|
-| `engineering-paved-path` | Shared engineering practices: verification gate, test-first done, scope discipline. | none |
+| `engineering-paved-path` | Shared engineering practices: done gate, spec-tier guide, module insights, review bundle and the agent guard script. | none |
 | `research-tools` | Read-only researcher agent that answers a concrete question from the repo or the web with evidence. | none |
-| `architecture-review` | Independent read-only architecture reviewer that checks a diff against layer boundaries. | none |
-| `sdd-engineering` | Spec-driven workflow: idea to spec to plan, delegating research and architecture review. | `engineering-paved-path`, `research-tools`, `architecture-review` (all `~1.0.0`) |
+| `architecture-review` | Independent read-only architecture reviewer that checks a diff against layer boundaries. | `engineering-paved-path` (`^1.0.0`) |
+| `sdd-engineering` | Spec-driven workflow: idea to spec to plan, delegating research and architecture review. | `engineering-paved-path`, `research-tools`, `architecture-review` (all `^1.0.0`) |
 
 ## Install
 
@@ -22,7 +22,26 @@ Add the marketplace and install a plugin:
 /plugin install sdd-engineering@dev-digest-ai-marketplace
 ```
 
-Installing `sdd-engineering` also installs its three dependencies.
+Installing `sdd-engineering` also installs its dependencies:
+
+```
+sdd-engineering@1.0.0
+├── engineering-paved-path@^1.0.0
+├── research-tools@^1.0.0
+└── architecture-review@^1.0.0
+    └── engineering-paved-path@^1.0.0
+```
+
+To install into one project from a shell, add `--scope project`:
+
+```
+claude plugin marketplace add HlibHav/dev-digest-ai-marketplace
+claude plugin install sdd-engineering@dev-digest-ai-marketplace --scope project
+```
+
+Each plugin's README has a quick start, usage examples and the files your project should declare. Start with [plugins/README.md](plugins/README.md).
+
+Release state: all four plugins are prepared at 1.0.0 and not yet tagged. Dependency ranges resolve against release tags, so until the tags exist `claude plugin list` reports `sdd-engineering` and `architecture-review` with an unmet dependency. See [docs/RELEASES.md](docs/RELEASES.md).
 
 To enable the plugin for everyone who opens a project, commit this to the project's `.claude/settings.json`:
 
@@ -50,7 +69,10 @@ This takes effect after each teammate accepts the workspace trust dialog. To upd
 │   └── <name>/                       # one directory per plugin
 │       ├── .claude-plugin/plugin.json
 │       ├── skills/ agents/ commands/ hooks/ scripts/
-│       └── README.md
+│       ├── README.md
+│       ├── CHANGELOG.md
+│       ├── COMPATIBILITY.md
+│       └── LICENSE
 ├── docs/
 │   ├── PLUGIN-GUIDELINES.md          # authoring rules
 │   ├── SECURITY.md                   # threat model, reporting, incident runbook
@@ -58,7 +80,7 @@ This takes effect after each teammate accepts the workspace trust dialog. To upd
 │   ├── SITE-SPEC.md                  # GitHub Pages catalog (skeleton)
 │   ├── COST-BASELINE.md              # token cost baseline (skeleton)
 │   ├── architecture-decisions/       # ADRs
-│   └── temp/                         # working notes, deleted after the plugins are built
+│   └── design/                       # catalog design brief, hand-off, tokens
 ├── site-src/                         # browser code and styles bundled into the site
 ├── data/                             # curated search data (dictionary, stop words)
 ├── test/                             # unit, integration and e2e tests

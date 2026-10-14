@@ -65,35 +65,25 @@ test.describe('wide layout (1280)', () => {
     for (const name of ['alpha', 'beta', 'gamma', 'delta']) {
       await expect(addSet(name)).toBeChecked();
       await expect(addSet(name)).toBeDisabled();
+      // the card says why in plain text, not only through the greyed box
+      await expect(page.locator(`#plugin-${name} .add-set-note`)).toContainText('Added as a dependency of suite');
+      await expect(addSet(name)).toHaveAttribute('aria-describedby', `add-set-note-${name}`);
     }
+    await expect(page.locator('#plugin-suite .add-set')).toHaveText('Add to install set');
+    await expect(page.locator('#plugin-suite .add-set-note')).toBeHidden();
     await expect(page.locator('#builder-count')).toHaveText('5 selected');
 
     // builder -> card
     await page.locator('#builder input[value="suite"]').uncheck();
     for (const name of ['alpha', 'suite']) await expect(addSet(name)).not.toBeChecked();
     await expect(addSet('alpha')).toBeEnabled();
+    await expect(page.locator('#plugin-alpha .add-set-note')).toBeHidden();
     await page.locator('#builder input[value="epsilon"]').check();
     await expect(addSet('epsilon')).toBeChecked();
 
     // the state survives a re-render of the cards
     await page.locator('#q').fill('epsilon');
     await expect(page.locator('#plugin-epsilon input[data-add-set]')).toBeChecked();
-  });
-
-  test('the opened disclosure makes its card span the whole row and leaves no hole', async ({ page }) => {
-    await open(page);
-    await page.locator('#app input[name="type"][value="plugin"]').check();
-    const card = page.locator('#plugin-alpha');
-    const grid = page.locator('#app .grid');
-    const widths = async () => ({ card: (await card.boundingBox()).width, grid: (await grid.boundingBox()).width });
-    const closed = await widths();
-    expect(closed.card).toBeLessThan(closed.grid * 0.6);
-    await card.locator('summary').click();
-    const opened = await widths();
-    expect(Math.abs(opened.card - opened.grid)).toBeLessThanOrEqual(2);
-    // dense flow: every other card is still laid out inside the grid, none is pushed past it
-    const outside = await grid.evaluate((g) => [...g.children].filter((c) => c.getBoundingClientRect().right > g.getBoundingClientRect().right + 1).length);
-    expect(outside).toBe(0);
   });
 
   test('the grid becomes list rows for a free-text query and goes back for the empty query and type listings', async ({ page }) => {
@@ -164,15 +154,15 @@ test.describe('wide layout (1280)', () => {
     await expect(card).toHaveAttribute('data-fx-state', 'off');
   });
 
-  test('the closed disclosure line states facts and "about"; the opened one shows neutral flags and no verdicts', async ({ page }) => {
+  test('the front line states facts and "about"; the back shows neutral flags and no verdicts', async ({ page }) => {
     await open(page);
     await page.locator('#app input[name="type"][value="plugin"]').check();
     const card = page.locator('#plugin-beta');
-    await expect(card.locator('summary')).toContainText('Declares 2 hooks (1 broad)');
-    await expect(card.locator('summary')).toContainText('about');
-    await card.locator('summary').click();
+    await expect(card.locator('.trust-toggle')).toContainText('Declares 2 hooks (1 broad)');
+    await expect(card.locator('.trust-toggle')).toContainText('about');
+    await card.locator('.trust-toggle').click();
     await expect(card.locator('.flag')).toHaveText(['broad matcher', 'non-loopback', 'scripts']);
-    await expect(card.locator('.trust-cost')).not.toContainText(/\b(safe|unsafe|dangerous|risky|verified)\b/i);
+    await expect(card.locator('.card-back')).not.toContainText(/\b(safe|unsafe|dangerous|risky|verified)\b/i);
   });
 });
 
@@ -239,7 +229,7 @@ test.describe('narrow layout (375)', () => {
       await page.setViewportSize({ width: 320, height: 700 });
       await open(page, '?plugins=suite');
       await page.locator('#app input[name="type"][value="plugin"]').check();
-      await page.locator('#plugin-beta summary').click();
+      await page.locator('#plugin-beta .trust-toggle').click();
       expect((await overflow(page)).doc).toBeLessThanOrEqual(0);
       expect((await overflow(page)).body).toBeLessThanOrEqual(0);
       await page.locator('#tray-open').click();
@@ -257,7 +247,7 @@ for (const [width, height] of [[1280, 800], [375, 800]]) {
       await page.emulateMedia({ colorScheme: scheme });
       await open(page, '?plugins=suite');
       await page.locator('#app input[name="type"][value="plugin"]').check();
-      await page.locator('#plugin-beta summary').click();
+      await page.locator('#plugin-beta .trust-toggle').click();
       const scan = async () => {
         const results = await new AxeBuilder({ page }).analyze();
         return results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical').map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(' | ')}`);

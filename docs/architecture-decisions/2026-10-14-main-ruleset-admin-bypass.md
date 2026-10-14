@@ -36,5 +36,5 @@ code-owner rule, the `validate` status check and an admin bypass actor.
 
 ## More Information
 
-- Research: `docs/temp/2026-10-14_marketplace-repo-structure.md` (section 9)
+- Research: [2026-10-14_marketplace-repo-structure.md](https://github.com/HlibHav/dev-digest-ai-marketplace/blob/631e50bf8e58a2d872598fdd2dac1b8d5ddf111d/docs/temp/2026-10-14_marketplace-repo-structure.md) (archived) (section 9)
 - https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners

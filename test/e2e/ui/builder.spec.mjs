@@ -33,10 +33,11 @@ test('AC-28: a dependency stays ticked and says who requires it, until the depen
   for (const name of ['alpha', 'beta', 'gamma', 'delta']) {
     await expect(box(page, name)).toBeChecked();
     await expect(box(page, name)).toBeDisabled();
-    await expect(row(page, name)).toContainText('required by');
-    await expect(row(page, name)).toContainText('added automatically');
+    // the note explains the lock, names the plugin the user ticked and carries a decorative lock glyph
+    await expect(row(page, name)).toContainText('Required by suite. Untick suite to remove it.');
+    await expect(row(page, name).locator('.row-note svg[aria-hidden="true"]')).toHaveCount(1);
+    await expect(box(page, name)).toHaveAttribute('aria-describedby', /builder-note-/);
   }
-  await expect(row(page, 'gamma')).toContainText('required by beta');
   await expect(box(page, 'suite')).toBeEnabled();
   await box(page, 'suite').uncheck();
   for (const name of ['alpha', 'beta', 'gamma', 'delta']) {
@@ -52,9 +53,9 @@ test('AC-30, AC-31: two copy buttons, the ranges and the range note', async ({ p
   await box(page, 'suite').check();
   const buttons = page.locator('#builder button[data-copy]');
   await expect(buttons).toHaveCount(2);
-  await expect(page.locator('#builder')).toContainText('~0.2.0 (declared by gamma)');
-  await expect(page.locator('#builder .range-note')).toContainText('<plugin>--v<semver> release tags');
-  await expect(page.locator('#builder .range-note')).toContainText('not checked by the site');
+  await expect(page.locator('#builder')).toContainText('^0.2.0');
+  await expect(page.locator('#builder .range-note')).toContainText('Claude Code checks these versions when you install');
+  await expect(page.locator('#builder .range-note')).toContainText("This page doesn't");
 
   await page.locator('#builder button[data-copy="commands"]').click();
   await expect(page.locator('#copy-status')).toHaveText('Copied');

@@ -2,9 +2,12 @@
 // bottom sheet: focus moves in, Escape and the close button hand focus back to the tray button, and the rest
 // of the page is inert while the sheet is open.
 import { h } from './safe-dom.js';
+import { t } from '../i18n/t.js';
 
+// Icon glyph, not a translatable word.
+const SYMBOL_CLOSE = '×';
 export const WIDE_QUERY = '(min-width: 1024px)';
-export const CLOSE_LABEL = 'Close the install set';
+export const CLOSE_LABEL = t('tray.closeAria');
 
 /**
  * opts: {doc, win, panel, tray, button, behind[]}. `behind` lists the elements made inert while the sheet is open.
@@ -36,7 +39,7 @@ export function createTray({ doc, win, panel, tray, button, behind = [] }) {
 
   function open() {
     if (isOpen() || (wide && wide.matches)) return;
-    closeButton = h(doc, 'button', { type: 'button', class: 'icon-btn', 'data-close': '', 'aria-label': CLOSE_LABEL }, '×');
+    closeButton = h(doc, 'button', { type: 'button', class: 'icon-btn', 'data-close': '', 'aria-label': CLOSE_LABEL }, SYMBOL_CLOSE);
     closeButton.addEventListener('click', () => close());
     const head = panel.querySelector('.builder-head');
     (head ?? panel).append(closeButton);

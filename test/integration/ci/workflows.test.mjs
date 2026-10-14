@@ -1,7 +1,9 @@
 // AC-4/AC-9 (CI side): validate workflow, check.sh and the docs agree with the plan.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 const read = (p) => readFileSync(new URL(`../../../${p}`, import.meta.url), 'utf8');
 const validate = read('.github/workflows/validate.yml');
@@ -27,6 +29,27 @@ test('validate job keeps its id and runs npm ci --ignore-scripts before check.sh
   assert.match(v, /node-version: +22/);
 });
 
+test('validate runs the harness checks without the site build', () => {
+  const v = job(validate, 'validate');
+  assert.match(v, /run: bash scripts\/check\.sh --no-build\s*$/m);
+  assert.ok(!/^\s+name: /m.test(v.split('\n').slice(0, 2).join('\n')), 'validate keeps its default display name (a ruleset requires it)');
+  assert.ok(!v.includes('build-index.mjs'), 'the site build lives in build-site');
+});
+
+test('build-site is its own visibly named job that builds and uploads site/', () => {
+  const b = job(validate, 'build-site');
+  assert.match(b, /^ {4}name: Build catalog site$/m);
+  const ci = b.indexOf('npm ci --ignore-scripts');
+  const build = b.indexOf('node scripts/build-index.mjs');
+  const up = b.indexOf('actions/upload-artifact@v4');
+  assert.ok(ci !== -1 && build !== -1 && up !== -1 && ci < build && build < up);
+  assert.match(b, /node-version: +22/);
+  assert.match(b, /name: catalog-site/);
+  assert.match(b, /path: site\/?\s*$/m);
+  assert.match(b, /retention-days: 7/);
+  assert.ok(!b.includes('check.sh'), 'build-site does not run the harness checks');
+});
+
 test('e2e is a separate job that installs chromium and runs the e2e tests', () => {
   const e = job(validate, 'e2e');
   const ci = e.indexOf('npm ci --ignore-scripts');
@@ -43,6 +66,18 @@ test('check.sh runs npm test after plugin validation and before the build', () =
   const build = check.indexOf('node scripts/build-index.mjs');
   assert.ok(plugins !== -1 && t !== -1 && build !== -1);
   assert.ok(plugins < t && t < build);
+});
+
+test('check.sh supports --no-build, builds by default, and prints the steps it ran', () => {
+  assert.match(check, /--no-build\) BUILD=0/);
+  assert.match(check, /if \[ "\$BUILD" -eq 1 \]; then\s+node scripts\/build-index\.mjs/);
+  assert.match(check, /Steps run:/);
+});
+
+test('check.sh rejects unknown arguments', () => {
+  const r = spawnSync('bash', [fileURLToPath(new URL('../../../scripts/check.sh', import.meta.url)), '--bogus'], { encoding: 'utf8' });
+  assert.equal(r.status, 2);
+  assert.match(r.stdout + r.stderr, /usage: bash scripts\/check\.sh \[--no-build\]/);
 });
 
 test('check.sh hints when node_modules is missing, before any check runs', () => {

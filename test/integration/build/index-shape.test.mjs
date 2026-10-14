@@ -61,7 +61,7 @@ test('the fixture marketplace passes the contract; plugins keep catalog order', 
 test('plugin entries carry dependencies with ranges, install commands, trust and cost', () => {
   const { index } = buildIndex({ root: FIXTURE });
   const p = Object.fromEntries(index.plugins.map((x) => [x.name, x]));
-  assert.deepEqual(p.suite.dependencies, [{ name: 'alpha', range: '~1.0.0' }, { name: 'beta', range: '~1.0.0' }, { name: 'delta', range: '~0.2.0' }]);
+  assert.deepEqual(p.suite.dependencies, [{ name: 'alpha', range: '^1.0.0' }, { name: 'beta', range: '^1.0.0' }, { name: 'delta', range: '^0.2.0' }]);
   assert.deepEqual(p.alpha.install_commands, [ADD, '/plugin install alpha@dev-digest-ai-marketplace']);
   assert.equal(p.beta.version, '1.0.0');
   assert.equal(p.delta.version, '0.2.1');

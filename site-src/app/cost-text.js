@@ -1,9 +1,9 @@
 // Plain-text rendering of a plugin's context-cost estimate.
-export const COST_NOTICE =
-  'Estimates only. Method: characters ÷ 4, rounded up. Excluded: hook output, MCP tool descriptions and results.';
-export const COST_EMPTY = '0 tokens (no loaded content)';
+import { t } from '../i18n/t.js';
+export const COST_NOTICE = t('cost.notice');
+export const COST_EMPTY = t('cost.empty');
 
-const fmt = (n) => n.toLocaleString('en-US');
+const fmt = (n) => n.toLocaleString(t('meta.locale'));
 
 export function describeCost(cost) {
   if (!cost.always_loaded_tokens && !cost.on_invocation_tokens) {
@@ -12,8 +12,8 @@ export function describeCost(cost) {
   return {
     empty: false,
     lines: [
-      `Always loaded: about ${fmt(cost.always_loaded_tokens)} tokens (estimate)`,
-      `Loaded on invocation: about ${fmt(cost.on_invocation_tokens)} tokens (estimate)`,
+      t('cost.always', { tokens: fmt(cost.always_loaded_tokens) }),
+      t('cost.onInvocation', { tokens: fmt(cost.on_invocation_tokens) }),
     ],
   };
 }

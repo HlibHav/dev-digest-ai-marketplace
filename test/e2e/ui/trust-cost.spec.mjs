@@ -18,9 +18,10 @@ async function pluginCard(page, name) {
   await page.locator('#app input[name="type"][value="plugin"]').check();
   const card = page.locator(`#app [data-card][data-type="plugin"][data-plugin="${name}"]`);
   await expect(card).toBeVisible();
-  await card.locator('summary').click();
-  const details = card.locator('details');
-  await expect(details).toHaveAttribute('open', '');
+  await card.locator('.trust-toggle').click();
+  await expect(card.locator('.trust-toggle')).toHaveAttribute('aria-expanded', 'true');
+  const details = card.locator('.card-back');
+  await expect(details).toBeVisible();
   return details;
 }
 

@@ -18,6 +18,7 @@ class Element_ extends Node_ {
 export function fakeDocument() {
   const doc = {
     createElement: (tag) => new Element_(doc, tag),
+    createElementNS: (_ns, tag) => new Element_(doc, tag),
     createTextNode: (data) => new Text_(doc, data),
   };
   return doc;

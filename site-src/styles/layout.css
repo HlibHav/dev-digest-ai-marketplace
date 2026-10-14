@@ -53,6 +53,9 @@
   border-color: color-mix(in srgb, var(--type-color) 55%, var(--border));
   background: color-mix(in srgb, var(--type-color) var(--badge-tint), var(--card-bg));
 }
+.filter.is-empty { cursor: not-allowed; color: var(--text-muted); background: var(--surface-2); border-style: dashed; }
+.filter.is-empty:hover { border-color: var(--border); }
+.filter.is-empty input { border-color: var(--border-strong); }
 .filter-count { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-muted); font-weight: 400; }
 .filter-from { font-size: var(--fs-xs); color: var(--text-muted); font-weight: 400; }
 

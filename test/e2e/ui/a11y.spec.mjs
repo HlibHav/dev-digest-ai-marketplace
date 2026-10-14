@@ -73,7 +73,7 @@ for (const scheme of ['light', 'dark']) {
     await page.goto(`${server.url}/?plugins=suite`);
     await expect(page.locator('#builder button[data-copy]')).toHaveCount(2);
     await page.locator('#app input[name="type"][value="plugin"]').check();
-    await page.locator('#app [data-card] summary').first().click();
+    await page.locator('#app [data-card] .trust-toggle').first().click();
     const results = await new AxeBuilder({ page }).analyze();
     const serious = results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
     expect(serious.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(' | ')}`)).toEqual([]);

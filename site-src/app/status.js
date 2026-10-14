@@ -1,9 +1,10 @@
 // Status line, live regions and the shared copy routine (AC-21, AC-44, AC-47, AC-59).
 import { copyText, selectContents, MANUAL_COPY_MESSAGE } from './clipboard.js';
+import { t } from '../i18n/t.js';
 
-export const LOADING_TEXT = 'Loading the search index…';
-export const LOAD_ERROR_TEXT = 'Search is unavailable because the index could not be loaded. The plugin list on this page still works.';
-export const COPIED_TEXT = 'Copied';
+export const LOADING_TEXT = t('status.loading');
+export const LOAD_ERROR_TEXT = t('status.loadError');
+export const COPIED_TEXT = t('status.copied');
 export { MANUAL_COPY_MESSAGE };
 
 const ANNOUNCE_DELAY_MS = 40;

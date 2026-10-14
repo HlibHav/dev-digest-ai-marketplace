@@ -1,0 +1,163 @@
+{
+  "meta": {
+    "lang": "en",
+    "locale": "en-US",
+    "title": "{name} catalog",
+    "description": "Search the plugins, skills, agents, commands, hooks and MCP servers of {name}."
+  },
+  "type": {
+    "plugin": "plugin",
+    "skill": "skill",
+    "agent": "agent",
+    "command": "command",
+    "hook": "hook",
+    "mcpServer": "MCP server"
+  },
+  "header": {
+    "tagline": "Find a plugin, skill, agent, command, hook or MCP server, then copy the install steps.",
+    "addMarketplace": "Add the marketplace",
+    "copyMarketplaceAria": "Copy the marketplace add command",
+    "copy": "Copy"
+  },
+  "search": {
+    "label": "Search plugins, skills, agents, commands, hooks and MCP servers",
+    "hint": "Name a type, such as agent or hook, to narrow the list.",
+    "clearAria": "Clear the search",
+    "filterLegend": "Type",
+    "fromQuery": "from query",
+    "filterNone": "None in this catalog",
+    "resultsAria": "Search results",
+    "showing": "Showing",
+    "interpType": "type",
+    "interpText": "text",
+    "describeTypes": "type {types}",
+    "describeText": "text {terms}",
+    "listOr": "or",
+    "noResults": "No results",
+    "searchedFor": "Searched for: {query}",
+    "nothing": "nothing",
+    "clearFilter": "Clear the type filter",
+    "clearSearch": "Clear the search",
+    "showMore": "Show {count} more",
+    "countCatalog": {
+      "one": "Showing the full catalog: {count} entry",
+      "other": "Showing the full catalog: {count} entries"
+    },
+    "countResults": {
+      "one": "{count} result",
+      "other": "{count} results"
+    },
+    "countShowingFirst": "showing the first {shown}"
+  },
+  "catalog": {
+    "title": "Plugins",
+    "heading": "Catalog",
+    "count": {
+      "one": "{count} plugin",
+      "other": "{count} plugins"
+    }
+  },
+  "card": {
+    "version": "v{version}",
+    "copyInstall": "Copy install",
+    "copyInstallAria": "Copy install commands for {name}",
+    "addToInstallSet": "Add to install set",
+    "addedAsDependency": "Added as a dependency of {parents}",
+    "alsoRequired": "Also required by {parents}",
+    "installsWith": "Installs with",
+    "manualCopyHint": "Select the text and copy it by hand:",
+    "requires": "Requires",
+    "contentsAria": "Contents",
+    "category": "Category:",
+    "noDependencies": "No dependencies",
+    "dependsOn": "Depends on",
+    "requiresClaudeCode": "Requires Claude Code {range}",
+    "whatsNew": "What's new in {version}",
+    "contents": {
+      "skill": { "one": "{count} skill", "other": "{count} skills" },
+      "agent": { "one": "{count} agent", "other": "{count} agents" },
+      "command": { "one": "{count} command", "other": "{count} commands" },
+      "hook": { "one": "{count} hook", "other": "{count} hooks" },
+      "mcpServer": { "one": "{count} MCP server", "other": "{count} MCP servers" }
+    }
+  },
+  "builder": {
+    "title": "Install set",
+    "count": "{count} selected",
+    "intro": "Tick the plugins you want. Their dependencies are added for you.",
+    "guidance": "Select one or more plugins to get the settings.json snippet and the install commands.",
+    "lockedNote": {
+      "one": "Required by {names}. Untick {names} to remove it.",
+      "other": "Required by {names}. Untick them all to remove it."
+    },
+    "lockedNoteBoth": "Required by {names}. Untick both to remove it.",
+    "yourSet": "Your set",
+    "neededBy": "needed by {names}",
+    "neededByRange": "{name} ({range})",
+    "scrollAria": "{title}, scrollable",
+    "installCommands": "Install commands",
+    "copyCommands": "Copy commands",
+    "settingsFile": ".claude/settings.json",
+    "copySnippet": "Copy settings.json snippet",
+    "rangeNote": "Claude Code checks these versions when you install. This page doesn't."
+  },
+  "tray": {
+    "none": "None selected",
+    "summary": {
+      "one": "{count} plugin: {names}",
+      "other": "{count} plugins: {names}"
+    },
+    "sectionAria": "Install set summary",
+    "review": "Review",
+    "closeAria": "Close the install set"
+  },
+  "status": {
+    "loading": "Loading the search index…",
+    "loadError": "Search is unavailable because the index could not be loaded. The plugin list on this page still works.",
+    "retry": "Retry loading the search index",
+    "copied": "Copied",
+    "manualCopy": "Copy is unavailable here. Select the text and copy it manually."
+  },
+  "trust": {
+    "summary": "Trust and cost",
+    "back": "← Back",
+    "bodyAria": "Trust and cost details for {name}",
+    "title": "Trust profile",
+    "notice": "This profile describes what this plugin declares, not a security audit.",
+    "empty": "This plugin declares no hooks, MCP servers or scripts.",
+    "networkUrls": "Network URLs in hook and MCP configuration (text only):",
+    "noMatcher": "no matcher",
+    "matcher": "matcher: {matcher}",
+    "broadMark": "(broad)",
+    "hookLine": "Hook {event}{broad}, {matcher}, from {source}",
+    "serverLine": "MCP server {name}, {kind}: {what}{nonLoopback}, from {source}",
+    "kindUrl": "URL",
+    "kindCommand": "local command",
+    "nonLoopbackMark": "(non-loopback)",
+    "declares": "Declares {parts}.",
+    "hooksPart": { "one": "{count} hook", "other": "{count} hooks" },
+    "serversPart": { "one": "{count} MCP server", "other": "{count} MCP servers" },
+    "broadCount": "({count} broad)",
+    "nonLoopbackCount": "({count} non-loopback)",
+    "scriptsPart": "a scripts/ folder",
+    "scriptsLine": "Contains a scripts/ folder",
+    "flagBroad": "broad matcher",
+    "flagNonLoopback": "non-loopback",
+    "flagScripts": "scripts",
+    "declaresNothing": "No hooks, MCP servers or scripts",
+    "loadedTokens": "about {tokens} tokens always loaded",
+    "loadedNone": "no always-loaded content",
+    "facts": "{declared} · {loaded}"
+  },
+  "cost": {
+    "title": "Context cost",
+    "notice": "Estimates only. Method: characters ÷ 4, rounded up. Excluded: hook output, MCP tool descriptions and results.",
+    "empty": "0 tokens (no loaded content)",
+    "always": "Always loaded: about {tokens} tokens (estimate)",
+    "onInvocation": "Loaded on invocation: about {tokens} tokens (estimate)"
+  },
+  "footer": {
+    "note": "Trust profiles and cost figures describe what a plugin declares. They are estimates, not a security audit.",
+    "licences": "Third-party licences"
+  }
+}

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { assertUniqueNames, normalizeDependencies, validateDependencies } from '../../../scripts/lib/deps.mjs';
+import { assertUniqueNames, findCycle, normalizeDependencies, validateDependencies } from '../../../scripts/lib/deps.mjs';
 import { BuildError } from '../../../scripts/lib/errors.mjs';
 
 const plugin = (name, dependencies) => ({ name, file: `plugins/${name}/.claude-plugin/plugin.json`, dependencies });
@@ -40,8 +40,8 @@ test('non-semver range', () => {
   }
 });
 
-test('range that is semver but not a ~ range', () => {
-  for (const v of ['1.0.0', '^1.0.0', '>=1.0.0']) {
+test('range that is semver but not a ^ or ~ range', () => {
+  for (const v of ['1.0.0', '>=1.0.0', '<2.0.0', '=1.0.0']) {
     throwsBuild(() => validateDependencies([plugin('a', [dep('b', v)]), plugin('b')]), 'plugins/a/.claude-plugin/plugin.json', /~/);
   }
 });
@@ -50,8 +50,31 @@ test('a range with no version at all', () => {
   throwsBuild(() => validateDependencies([plugin('a', [{ name: 'b' }]), plugin('b')]), 'plugins/a/.claude-plugin/plugin.json', /version/);
 });
 
-test('bare string dependency', () => {
+test('a plain name without a range is a bare string', () => {
   throwsBuild(() => validateDependencies([plugin('a', ['b']), plugin('b')]), 'plugins/a/.claude-plugin/plugin.json', /bare string/);
+  throwsBuild(() => validateDependencies([plugin('a', ['@^1.0.0']), plugin('b')]), 'plugins/a/.claude-plugin/plugin.json', /bare string/);
+});
+
+test('^ ranges are accepted in both spellings', () => {
+  assert.deepEqual(normalizeDependencies([dep('b', '^1.2.3')], 'f'), [{ name: 'b', range: '^1.2.3' }]);
+  assert.deepEqual(normalizeDependencies(['b@dev-digest-ai-marketplace@^1.2.3', 'c@^0.3.0'], 'f'), [
+    { name: 'b', range: '^1.2.3' },
+    { name: 'c', range: '^0.3.0' },
+  ]);
+  validateDependencies([plugin('a', ['b@m@^1.0.0']), plugin('b', [dep('c', '^2.0.0')]), plugin('c')]);
+});
+
+test('string spelling is checked like the object spelling', () => {
+  const f = 'plugins/a/.claude-plugin/plugin.json';
+  throwsBuild(() => validateDependencies([plugin('a', ['ghost@m@^1.0.0'])]), f, /"ghost".*not in the catalog/);
+  throwsBuild(() => validateDependencies([plugin('a', ['b@m@1.0.0']), plugin('b')]), f, /\^/);
+  throwsBuild(() => validateDependencies([plugin('a', ['b@m@^1.x']), plugin('b')]), f, /not a semver/);
+  throwsBuild(() => validateDependencies([plugin('a', ['b@m@^1.0.0']), plugin('b', ['a@m@^1.0.0'])]), f, /cycle: a -> b -> a/);
+});
+
+test('findCycle returns the cycle path or null', () => {
+  assert.equal(findCycle(new Map([['a', ['b']], ['b', []]])), null);
+  assert.deepEqual(findCycle(new Map([['a', ['b']], ['b', ['a']]])), { cycle: 'a -> b -> a', root: 'a' });
 });
 
 test('dependencies that is not an array, and an entry without a name', () => {
