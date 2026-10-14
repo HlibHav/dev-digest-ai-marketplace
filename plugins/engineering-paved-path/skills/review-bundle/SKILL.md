@@ -21,7 +21,7 @@ Then build the bundle into a scratch directory outside the repo:
 bash ${CLAUDE_SKILL_DIR}/scripts/review-bundle.sh "$base"...HEAD <out-dir>
 ```
 
-The range is `<base>...<head>`, with the three dots. Use another head (a branch, a SHA) when reviewing something other than the checked-out state. If every ref fails to resolve, say so and ask for the base; do not guess one. Re-running replaces `<out-dir>`.
+The range is `<base>...<head>`, with the three dots. Use another head (a branch, a SHA) when reviewing something other than the checked-out state. If every ref fails to resolve, say so and ask for the base; do not guess one. Re-running replaces `<out-dir>`. Because it is deleted first, the script refuses any `<out-dir>` that is not strictly inside the system temp folder (`$TMPDIR` or `/tmp`) or the repository's `.tmp/`, and exits 2.
 
 ## What it writes
 

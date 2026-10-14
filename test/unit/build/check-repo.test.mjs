@@ -100,3 +100,12 @@ test('dependencies: every range must start with ^', () => {
   bad(withDeps([{ name: 'b', version: '>=0.1.0' }]), /\^/);
   bad(withDeps([{ name: 'b' }]), /needs a string "version" range/);
 });
+
+test('arguments: an unknown flag, or --root with no value, exits 2 with usage and checks nothing', () => {
+  for (const args of [['--bogus'], ['--root'], ['--root', '--bogus'], ['--root', '']]) {
+    const r = spawnSync(process.execPath, [SCRIPT, ...args], { encoding: 'utf8' });
+    assert.equal(r.status, 2, `${args.join(' ')}:\n${r.stdout}${r.stderr}`);
+    assert.match(r.stderr, /usage: node scripts\/check-repo\.mjs/);
+    assert.doesNotMatch(r.stdout, /check-repo: OK/);
+  }
+});
