@@ -41,7 +41,7 @@ test('the lockfile exists', () => {
 
 test('.gitignore lists generated directories', () => {
   const lines = read('.gitignore').split('\n').map((l) => l.trim());
-  for (const entry of ['node_modules/', 'site/', '.tmp/', 'test-results/', 'playwright-report/']) {
+  for (const entry of ['node_modules/', '/site/', '.tmp/', 'test-results/', 'playwright-report/']) {
     assert.ok(lines.includes(entry), `.gitignore must list ${entry}`);
   }
 });

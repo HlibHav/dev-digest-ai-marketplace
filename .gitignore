@@ -1,5 +1,5 @@
 node_modules/
-site/
+/site/
 .DS_Store
 .tmp/
 test-results/
