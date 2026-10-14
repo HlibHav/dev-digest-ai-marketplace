@@ -1,63 +1,67 @@
 #!/usr/bin/env node
-// Builds site/index.json and site/index.html from the catalog and each plugin.json.
+// Builds <out>/index.json (the catalog index) and <out>/index.html (the no-JS static list).
+// Usage: node scripts/build-index.mjs [--root <dir>] [--out <dir>]
+// Defaults: --root is the repository root, --out is <root>/site. INDEX_BUDGET_GZIP_BYTES overrides the size budget.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { BuildError } from './lib/errors.mjs';
+import { ADD_COMMAND, buildIndex } from './lib/index-builder.mjs';
+import { MARKETPLACE } from '../site-src/contract/index-contract.js';
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const MARKETPLACE = 'dev-digest-ai-marketplace';
-const ADD_CMD = `/plugin marketplace add HlibHav/${MARKETPLACE}`;
+const USAGE = 'usage: node scripts/build-index.mjs [--root <dir>] [--out <dir>]';
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-function readJson(rel) {
-  try {
-    return JSON.parse(readFileSync(join(root, rel), 'utf8'));
-  } catch (e) {
-    console.error(`build-index: ${rel}: ${e.message}`);
-    process.exit(1);
-  }
+function fail(message, code = 1) {
+  console.error(`build-index: ${message}`);
+  process.exit(code);
 }
-const bad = (msg) => {
-  console.error(`build-index: ${msg}`);
-  process.exit(1);
-};
 
-const catalog = readJson('.claude-plugin/marketplace.json');
-if (!Array.isArray(catalog.plugins)) bad('.claude-plugin/marketplace.json: "plugins" must be an array');
+function parseArgs(argv) {
+  const opts = { root: repoRoot, out: null };
+  for (let i = 0; i < argv.length; i += 1) {
+    const a = argv[i];
+    if (a === '--root' || a === '--out') {
+      const v = argv[i + 1];
+      if (v === undefined || v.startsWith('--')) fail(`${a} needs a directory\n${USAGE}`, 2);
+      opts[a.slice(2)] = resolve(v);
+      i += 1;
+    } else {
+      fail(`unknown argument "${a}"\n${USAGE}`, 2);
+    }
+  }
+  opts.out ??= join(opts.root, 'site');
+  return opts;
+}
 
-const plugins = catalog.plugins.map((entry) => {
-  if (typeof entry?.name !== 'string' || typeof entry.source !== 'string') bad('catalog entry needs string name and source');
-  const manifest = readJson(`${entry.source.replace(/^\.\//, '')}/.claude-plugin/plugin.json`);
-  if (typeof manifest.version !== 'string') bad(`${entry.name}: plugin.json has no version`);
-  const deps = (manifest.dependencies ?? []).map((d) => (typeof d === 'string' ? d : d?.name));
-  if (deps.some((d) => typeof d !== 'string')) bad(`${entry.name}: malformed dependencies`);
-  return {
-    name: entry.name,
-    version: manifest.version,
-    description: manifest.description ?? entry.description ?? '',
-    category: entry.category ?? '',
-    tags: Array.isArray(entry.tags) ? entry.tags : [],
-    dependencies: deps,
-    install: `/plugin install ${entry.name}@${MARKETPLACE}`,
-  };
-});
+function budgetFromEnv() {
+  const raw = process.env.INDEX_BUDGET_GZIP_BYTES;
+  if (raw === undefined || raw === '') return undefined;
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n <= 0) fail('INDEX_BUDGET_GZIP_BYTES must be a positive integer');
+  return n;
+}
 
+// Legacy static page, adapted to the new index shape. Step 26 replaces it with the real renderer.
 const esc = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-const cards = plugins
-  .map(
-    (p) => `    <li class="card">
+function renderLegacyPage(index, description) {
+  const cards = index.plugins
+    .map(
+      (p) => `    <li class="card">
       <h2>${esc(p.name)} <span class="ver">v${esc(p.version)}</span></h2>
       <p>${esc(p.description)}</p>
       <p class="meta">${p.category ? `Category: ${esc(p.category)}. ` : ''}${
-        p.dependencies.length ? `Depends on: ${p.dependencies.map(esc).join(', ')}.` : 'No dependencies.'
+        p.dependencies.length
+          ? `Depends on: ${p.dependencies.map((d) => `${esc(d.name)} (${esc(d.range)})`).join(', ')}.`
+          : 'No dependencies.'
       }</p>
-      <pre><code>${esc(p.install)}</code></pre>
+      <pre><code>${esc(p.install_commands.join('\n'))}</code></pre>
     </li>`,
-  )
-  .join('\n');
-
-const html = `<!doctype html>
+    )
+    .join('\n');
+  return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -78,9 +82,9 @@ const html = `<!doctype html>
 <body>
   <main>
     <h1>${esc(MARKETPLACE)}</h1>
-    <p>${esc(catalog.description ?? '')}</p>
+    <p>${esc(description)}</p>
     <h2>Add the marketplace</h2>
-    <pre><code>${esc(ADD_CMD)}</code></pre>
+    <pre><code>${esc(ADD_COMMAND)}</code></pre>
     <h2>Plugins</h2>
     <ul>
 ${cards}
@@ -89,8 +93,21 @@ ${cards}
 </body>
 </html>
 `;
+}
 
-mkdirSync(join(root, 'site'), { recursive: true });
-writeFileSync(join(root, 'site/index.json'), JSON.stringify(plugins, null, 2) + '\n');
-writeFileSync(join(root, 'site/index.html'), html);
-console.log(`build-index: wrote site/index.json and site/index.html (${plugins.length} plugins)`);
+const { root, out } = parseArgs(process.argv.slice(2));
+let result;
+try {
+  result = buildIndex({ root, indexBudgetGzipBytes: budgetFromEnv() });
+} catch (e) {
+  if (e instanceof BuildError) fail(e.message);
+  throw e;
+}
+
+// All-or-nothing: everything above is computed first, files are written only now.
+const catalogDescription = JSON.parse(readFileSync(join(root, '.claude-plugin', 'marketplace.json'), 'utf8')).description;
+const html = renderLegacyPage(result.index, typeof catalogDescription === 'string' ? catalogDescription : '');
+mkdirSync(out, { recursive: true });
+writeFileSync(join(out, 'index.json'), result.json);
+writeFileSync(join(out, 'index.html'), html);
+console.log(`build-index: wrote index.json and index.html (${result.index.plugins.length} plugins, ${result.index.artifacts.length} artifacts)`);

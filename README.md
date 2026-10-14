@@ -59,7 +59,10 @@ This takes effect after each teammate accepts the workspace trust dialog. To upd
 │   ├── COST-BASELINE.md              # token cost baseline (skeleton)
 │   ├── architecture-decisions/       # ADRs
 │   └── temp/                         # working notes, deleted after the plugins are built
-├── scripts/                          # check.sh, check-repo.mjs, build-index.mjs
+├── site-src/                         # browser code and styles bundled into the site
+├── data/                             # curated search data (dictionary, stop words)
+├── test/                             # unit, integration and e2e tests
+├── scripts/                          # check.sh, check-repo.mjs, build-index.mjs, lib/
 ├── .github/workflows/                # validate, pages
 ├── CODEOWNERS
 ├── CONTRIBUTING.md
@@ -75,7 +78,7 @@ Start with [CONTRIBUTING.md](CONTRIBUTING.md). Deeper rules are in [docs/PLUGIN-
 - [Plugin guidelines](docs/PLUGIN-GUIDELINES.md)
 - [Security](docs/SECURITY.md)
 - [Releases](docs/RELEASES.md)
-- [Site spec](docs/SITE-SPEC.md)
+- [Site spec](docs/SITE-SPEC.md) (catalog search: [SPEC-2026-10-14-catalog-search](specs/SPEC-2026-10-14-catalog-search.md))
 - [Cost baseline](docs/COST-BASELINE.md)
 
 ## License

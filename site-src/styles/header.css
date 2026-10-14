@@ -1,0 +1,32 @@
+/* Header: static gradient in the palette, with room for the effects canvas behind a scrim. */
+.site-header {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  color: var(--header-text);
+  background: linear-gradient(135deg, var(--header-from), var(--header-to));
+}
+
+/* Scrim keeps text above 4.5:1 over any frame of the animated effect (AC-56). */
+.site-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.site-header canvas[data-fx-canvas] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  pointer-events: none;
+}
+
+.header-inner { max-width: 72rem; margin: 0 auto; padding: 1.5rem 1rem; }
+.tagline { max-width: 40rem; margin-bottom: 1rem; }
+
+.search-form label { display: block; font-weight: 600; margin-bottom: 0.35rem; }
+.site-header :focus-visible { outline-color: #ffffff; }

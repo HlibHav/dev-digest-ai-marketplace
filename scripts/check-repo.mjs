@@ -74,7 +74,7 @@ if (isDir(pluginsDir)) {
 }
 
 // Absolute paths in text files and symlinks that escape the repo.
-const ABS_PATH = /\/Users\/|\/home\/|[A-Za-z]:\\/i;
+const ABS_PATH = /\/Users\/|\/home\/|(?:^|[^A-Za-z0-9_\\])[A-Za-z]:\\/i;
 const SKIP_DIRS = new Set(['.git', 'node_modules', 'site', '.tmp', 'test-results', 'playwright-report']);
 const rootPrefix = root + sep;
 

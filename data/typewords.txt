@@ -1,0 +1,11 @@
+# Type words: a query word that names an artifact type becomes a type filter, not a text term.
+# Format: type: form, form, ...
+# Types: plugin, skill, agent, command, hook, mcp_server. Inflected forms are listed explicitly.
+# A form belongs to exactly one type. Apostrophe variants are one character.
+
+skill: skill, skills, скіл, скіли, скіла, скілу, скілів, скілам, скілами, скілах, скілом, скілл, скілли, скілла, навичка, навички, навичку, навичок
+agent: agent, agents, агент, агенти, агента, агенту, агентів, агентам, агентами, агентах, агентом
+command: command, commands, команда, команди, команду, команд, командою, командам, командами, командах, команді
+hook: hook, hooks, хук, хуки, хука, хуку, хуків, хукам, хуками, хуках, хуком
+mcp_server: mcp
+plugin: plugin, plugins, плагін, плагіни, плагіна, плагіну, плагінів, плагінам, плагінами, плагінах, плагіном, плагіні

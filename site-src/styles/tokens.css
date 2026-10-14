@@ -1,0 +1,50 @@
+/* Design tokens. The type colours repeat site-src/app/type-colors.js (checked by a unit test). */
+:root {
+  color-scheme: light dark;
+  --page-bg: #ffffff;
+  --card-bg: #ffffff;
+  --text: #1a1a1a;
+  --text-muted: #4b5563;
+  --border: #d1d5db;
+  --focus: #1d4ed8;
+  --type-plugin: #1d4ed8;
+  --type-skill: #6d28d9;
+  --type-agent: #047857;
+  --type-command: #b45309;
+  --type-hook: #be123c;
+  --type-mcp_server: #0e7490;
+  --header-from: #1d4ed8;
+  --header-to: #6d28d9;
+  --header-text: #ffffff;
+  --mark-bg: #fde68a;
+  --mark-text: #1a1a1a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page-bg: #121212;
+    --card-bg: #1e1e1e;
+    --text: #ececec;
+    --text-muted: #a3a3a3;
+    --border: #3a3a3a;
+    --focus: #60a5fa;
+    --type-plugin: #60a5fa;
+    --type-skill: #a78bfa;
+    --type-agent: #34d399;
+    --type-command: #fbbf24;
+    --type-hook: #fb7185;
+    --type-mcp_server: #22d3ee;
+    --header-from: #1e3a8a;
+    --header-to: #4c1d95;
+    --header-text: #ffffff;
+    --mark-bg: #854d0e;
+    --mark-text: #ffffff;
+  }
+}
+
+[data-type="plugin"] { --type-color: var(--type-plugin); }
+[data-type="skill"] { --type-color: var(--type-skill); }
+[data-type="agent"] { --type-color: var(--type-agent); }
+[data-type="command"] { --type-color: var(--type-command); }
+[data-type="hook"] { --type-color: var(--type-hook); }
+[data-type="mcp_server"] { --type-color: var(--type-mcp_server); }

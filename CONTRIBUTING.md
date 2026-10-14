@@ -68,12 +68,15 @@ Ask for the user's name if you do not know it, then greet them by name in one li
 ```
 
 `description` decides when Claude loads the skill, so say what it does and when to use it.
-An agent is `agents/<agent>.md` with `name` and `description` frontmatter. `check.sh` does not
-validate skill or agent frontmatter, so review checks it.
+An agent is `agents/<agent>.md` with `name` and `description` frontmatter. The build validates skill and agent frontmatter.
 
 ## Test locally
 
-Requirements: Node 20 or newer (CI uses 22) and Claude Code with `claude plugin validate`.
+Requirements: Node 22 or newer and Claude Code with `claude plugin validate`. Install the locked dependencies once, without running install scripts:
+
+```
+npm ci --ignore-scripts
+```
 
 Load your plugin, plus its dependencies if it has any, straight from the checkout, with no tags needed:
 
@@ -90,7 +93,9 @@ Inside the session, run `/reload-plugins` after each edit. Then run the one chec
 bash scripts/check.sh
 ```
 
-It runs `node scripts/check-repo.mjs` (repo rules), `claude plugin validate . --strict`, `claude plugin validate plugins/<name> --strict` for each plugin, and `node scripts/build-index.mjs`. Fix everything it reports before you open a PR.
+It runs `node scripts/check-repo.mjs` (repo rules), `claude plugin validate . --strict`, `claude plugin validate plugins/<name> --strict` for each plugin, `npm test`, and `node scripts/build-index.mjs`. Fix everything it reports before you open a PR.
+
+Run the tests on their own with `npm test`. The browser tests need Chromium once (`npx playwright install chromium`), then run with `npm run test:e2e`; CI runs them as the separate `e2e` job.
 
 ## Add a new plugin
 
