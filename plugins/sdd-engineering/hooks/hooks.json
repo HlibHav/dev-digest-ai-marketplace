@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/agent-guard.py\" --agent spec-creator=specs --agent implementation-planner=planner --agent plan-verifier=readonly",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
