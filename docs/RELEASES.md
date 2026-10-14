@@ -1,6 +1,6 @@
 # Releases
 
-Decisions behind this page: [native release tags](architecture-decisions/2026-10-14-native-plugin-release-tags.md) and [version only in plugin.json](architecture-decisions/2026-10-14-relative-sources-version-in-plugin-json.md). Source: `docs/temp/2026-10-14_marketplace-repo-structure.md`, sections 3 and 4.
+Decisions behind this page: [native release tags](architecture-decisions/2026-10-14-native-plugin-release-tags.md) and [version only in plugin.json](architecture-decisions/2026-10-14-relative-sources-version-in-plugin-json.md). Source: [2026-10-14_marketplace-repo-structure.md](https://github.com/HlibHav/dev-digest-ai-marketplace/blob/631e50bf8e58a2d872598fdd2dac1b8d5ddf111d/docs/temp/2026-10-14_marketplace-repo-structure.md) (archived), sections 3 and 4.
 
 ## What SemVer means for a plugin
 

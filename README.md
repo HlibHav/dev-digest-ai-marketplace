@@ -58,8 +58,7 @@ This takes effect after each teammate accepts the workspace trust dialog. To upd
 │   ├── SITE-SPEC.md                  # GitHub Pages catalog (skeleton)
 │   ├── COST-BASELINE.md              # token cost baseline (skeleton)
 │   ├── architecture-decisions/       # ADRs
-│   ├── design/                       # catalog design brief, hand-off, tokens
-│   └── temp/                         # working notes, deleted after the plugins are built
+│   └── design/                       # catalog design brief, hand-off, tokens
 ├── site-src/                         # browser code and styles bundled into the site
 ├── data/                             # curated search data (dictionary, stop words)
 ├── test/                             # unit, integration and e2e tests

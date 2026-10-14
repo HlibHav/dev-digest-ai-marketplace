@@ -90,7 +90,7 @@ function walk(dir) {
       continue;
     }
     if (d.isDirectory()) {
-      if (SKIP_DIRS.has(d.name) || rel === 'docs/temp') continue;
+      if (SKIP_DIRS.has(d.name)) continue;
       walk(full);
     } else if (d.isFile()) {
       // A worktree's .git is a file holding the absolute gitdir path.

@@ -11,7 +11,7 @@ supersedes: docs/architecture-decisions/2026-10-14-catalog-stack.md
 ## Context and Problem Statement
 
 [2026-10-14-catalog-stack](2026-10-14-catalog-stack.md) chose the `shaders` package for the
-catalog's active effects. The spike (`docs/temp/2026-10-14_shaders-spike.md`) found, in `shaders`
+catalog's active effects. The spike ([2026-10-14_shaders-spike.md](https://github.com/HlibHav/dev-digest-ai-marketplace/blob/631e50bf8e58a2d872598fdd2dac1b8d5ddf111d/docs/temp/2026-10-14_shaders-spike.md) (archived)) found, in `shaders`
 4.0.4: telemetry to `https://shaders.com/api/telemetry` started by default on any host except
 shaders.com and localhost; a `new Function` probe at module load that violates the same-origin CSP;
 two `fetch` call sites left in the bundle after every exclusion; and about 295 KB gzipped for one
@@ -43,5 +43,5 @@ and fails on any (AC-57); `repo-hygiene.test.mjs` fails if any `*shader*` packag
 
 ## More Information
 
-- Spike: `docs/temp/2026-10-14_shaders-spike.md`
+- Spike: [2026-10-14_shaders-spike.md](https://github.com/HlibHav/dev-digest-ai-marketplace/blob/631e50bf8e58a2d872598fdd2dac1b8d5ddf111d/docs/temp/2026-10-14_shaders-spike.md) (archived)
 - Spec: `specs/SPEC-2026-10-14-catalog-search.md` (section I, changelog)

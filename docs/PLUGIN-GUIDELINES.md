@@ -1,6 +1,6 @@
 # Plugin guidelines
 
-Authoring rules for plugins in this repo. [CONTRIBUTING.md](../CONTRIBUTING.md) is the short path; this page is the reasoning. Source: `docs/temp/2026-10-14_marketplace-repo-structure.md`.
+Authoring rules for plugins in this repo. [CONTRIBUTING.md](../CONTRIBUTING.md) is the short path; this page is the reasoning. Source: [2026-10-14_marketplace-repo-structure.md](https://github.com/HlibHav/dev-digest-ai-marketplace/blob/631e50bf8e58a2d872598fdd2dac1b8d5ddf111d/docs/temp/2026-10-14_marketplace-repo-structure.md) (archived).
 
 ## Layout
 
