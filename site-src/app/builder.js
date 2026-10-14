@@ -56,3 +56,28 @@ export function cliCommands(entries) {
   if (!entries.length) return '';
   return [`/plugin marketplace add ${REPO}`, ...entries.map((e) => `/plugin install ${e.name}@${MARKETPLACE}`)].join('\n');
 }
+
+/**
+ * Map<name, string[]>: for each entry, the plugins the user ticked that need it, directly or through an
+ * automatically added plugin. Unticking all of them is what frees the entry.
+ */
+export function chosenParents(entries) {
+  const byName = new Map(entries.map((e) => [e.name, e]));
+  const out = new Map();
+  for (const entry of entries) {
+    const found = new Set();
+    const seen = new Set([entry.name]);
+    const stack = [...entry.requiredBy];
+    while (stack.length) {
+      const name = stack.pop();
+      if (seen.has(name)) continue;
+      seen.add(name);
+      const parent = byName.get(name);
+      if (!parent) continue;
+      if (!parent.auto) found.add(name);
+      stack.push(...parent.requiredBy);
+    }
+    out.set(entry.name, entries.map((e) => e.name).filter((n) => found.has(n)));
+  }
+  return out;
+}

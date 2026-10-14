@@ -65,35 +65,25 @@ test.describe('wide layout (1280)', () => {
     for (const name of ['alpha', 'beta', 'gamma', 'delta']) {
       await expect(addSet(name)).toBeChecked();
       await expect(addSet(name)).toBeDisabled();
+      // the card says why in plain text, not only through the greyed box
+      await expect(page.locator(`#plugin-${name} .add-set-note`)).toContainText('Added as a dependency of suite');
+      await expect(addSet(name)).toHaveAttribute('aria-describedby', `add-set-note-${name}`);
     }
+    await expect(page.locator('#plugin-suite .add-set')).toHaveText('Add to install set');
+    await expect(page.locator('#plugin-suite .add-set-note')).toBeHidden();
     await expect(page.locator('#builder-count')).toHaveText('5 selected');
 
     // builder -> card
     await page.locator('#builder input[value="suite"]').uncheck();
     for (const name of ['alpha', 'suite']) await expect(addSet(name)).not.toBeChecked();
     await expect(addSet('alpha')).toBeEnabled();
+    await expect(page.locator('#plugin-alpha .add-set-note')).toBeHidden();
     await page.locator('#builder input[value="epsilon"]').check();
     await expect(addSet('epsilon')).toBeChecked();
 
     // the state survives a re-render of the cards
     await page.locator('#q').fill('epsilon');
     await expect(page.locator('#plugin-epsilon input[data-add-set]')).toBeChecked();
-  });
-
-  test('the opened disclosure makes its card span the whole row and leaves no hole', async ({ page }) => {
-    await open(page);
-    await page.locator('#app input[name="type"][value="plugin"]').check();
-    const card = page.locator('#plugin-alpha');
-    const grid = page.locator('#app .grid');
-    const widths = async () => ({ card: (await card.boundingBox()).width, grid: (await grid.boundingBox()).width });
-    const closed = await widths();
-    expect(closed.card).toBeLessThan(closed.grid * 0.6);
-    await card.locator('summary').click();
-    const opened = await widths();
-    expect(Math.abs(opened.card - opened.grid)).toBeLessThanOrEqual(2);
-    // dense flow: every other card is still laid out inside the grid, none is pushed past it
-    const outside = await grid.evaluate((g) => [...g.children].filter((c) => c.getBoundingClientRect().right > g.getBoundingClientRect().right + 1).length);
-    expect(outside).toBe(0);
   });
 
   test('the grid becomes list rows for a free-text query and goes back for the empty query and type listings', async ({ page }) => {

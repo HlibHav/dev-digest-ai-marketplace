@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parseCurated } from '../../../site-src/search/index.js';
-import { installLines, truncate, createCard, countContents, contentsEntries, TYPE_LABELS } from '../../../site-src/app/card-view.js';
+import { installLines, truncate, createCard, applyAddSet, countContents, contentsEntries, TYPE_LABELS } from '../../../site-src/app/card-view.js';
 import { stripTypeWords, effectiveResult, countMessage, describeInterpretation, isListMode, countByType } from '../../../site-src/app/search-view.js';
 import { renderTrustCost } from '../../../site-src/app/trust-view.js';
 import { createBuilderView, rowNote, isLocked, GUIDANCE } from '../../../site-src/app/builder-view.js';
@@ -206,8 +206,10 @@ test('AC-28: dependencies stay ticked and locked while a dependent is selected',
     assert.equal(inputs[name].disabled, true, `${name} locked`);
   }
   assert.equal(inputs.suite.disabled, false);
-  assert.ok(host.textContent.includes('added automatically, required by suite'));
-  assert.ok(host.textContent.includes('required by gamma'));
+  // the note names the plugins the user ticked, not the automatic ones in between, and explains the lock
+  assert.ok(host.textContent.includes('Required by suite. Untick suite to remove it.'));
+  assert.ok(!host.textContent.includes('Required by gamma'));
+  assert.equal(all(host, (e) => e.tagName === 'SVG' && e.getAttribute('aria-hidden') === 'true').length, 3);
   inputs.suite.checked = false;
   inputs.suite.fire('change');
   for (const name of ['alpha', 'gamma', 'delta', 'suite']) {
@@ -220,8 +222,11 @@ test('AC-28: dependencies stay ticked and locked while a dependent is selected',
 test('AC-27, AC-30, AC-31: the set shows ranges and the note, with two copy buttons', () => {
   const { host } = builder(['suite']);
   const text = host.textContent;
-  assert.ok(text.includes('~0.2.0 (declared by gamma)'));
-  assert.ok(text.includes('resolve against <plugin>--v<semver> release tags'));
+  const [gamma] = all(host, (e) => e.getAttribute?.('data-entry') === 'gamma');
+  assert.ok(gamma.textContent.includes('~0.3.0'), gamma.textContent);
+  assert.match(gamma.textContent, /needed by \w/);
+  assert.ok(!gamma.textContent.includes('declared by'));
+  assert.ok(text.includes("Claude Code checks these versions when you install. This page doesn't."));
   assert.equal(copyButtons(host).length, 2);
   assert.deepEqual(copyButtons(host).map((b) => b.getAttribute('data-copy')), ['commands', 'snippet']);
   const pres = byTag(host, 'pre').map((p) => p.textContent);
@@ -237,6 +242,8 @@ test('selection from the URL ignores unknown plugin names; rowNote and isLocked'
   assert.equal(inputs.alpha.checked, true);
   assert.equal(rowNote(undefined), '');
   assert.equal(rowNote({ auto: false, requiredBy: [] }), '');
+  assert.equal(rowNote({ auto: true, requiredBy: ['x'] }, ['suite']), 'Required by suite. Untick suite to remove it.');
+  assert.equal(rowNote({ auto: true, requiredBy: ['x', 'y'] }, ['suite', 'other']), 'Required by suite and other. Untick both to remove it.');
   assert.equal(isLocked({ requiredBy: [] }), false);
   assert.equal(isLocked({ requiredBy: ['x'] }), true);
 });
@@ -311,15 +318,37 @@ test('a plugin card has an id to link to, a contents line, requirements and an i
   assert.equal(byTag(card, 'details').length, 1);
   assert.equal(byTag(card, 'summary').length, 1);
   box.fire('change');
-  assert.deepEqual(toggles, [['beta', undefined]]);
+  assert.deepEqual(toggles, [['beta', true]]);
 });
 
-test('a locked dependency shows its install-set box ticked and disabled', () => {
-  const ctx = ctxFor({ builder: { state: () => ({ checked: true, locked: true }), toggle() {} } });
+test('a locked dependency shows its install-set box ticked and disabled, with the reason as visible text', () => {
+  const ctx = ctxFor({ builder: { state: () => ({ checked: true, locked: true, auto: true, parents: ['suite', 'other'] }), toggle() {} } });
   const card = createCard(ctx, { doc: item({ type: 'plugin', name: 'beta' }), score: 1, terms: [] }, []);
   const box = all(card, (e) => e.tagName === 'INPUT')[0];
   assert.equal(box.getAttribute('checked'), '');
   assert.equal(box.getAttribute('disabled'), '');
+  const note = all(card, (e) => e.getAttribute('class') === 'add-set-note')[0];
+  assert.equal(note.textContent, 'Added as a dependency of suite, other');
+  assert.equal(note.hidden, false);
+  assert.equal(box.getAttribute('aria-describedby'), note.getAttribute('id'));
+  const label = all(card, (e) => e.getAttribute('class') === 'add-set')[0];
+  assert.equal(label.textContent, 'Add to install set');
+});
+
+test('applyAddSet clears the note and the description when the box is no longer locked', () => {
+  const doc = dom();
+  const box = doc.createElement('input');
+  const note = doc.createElement('span');
+  note.setAttribute('id', 'n');
+  box.removeAttribute = (k) => { delete box.attrs[k]; };
+  applyAddSet(box, note, { checked: true, locked: true, auto: false, parents: ['suite'] });
+  assert.equal(note.textContent, 'Also required by suite');
+  assert.equal(box.getAttribute('aria-describedby'), 'n');
+  applyAddSet(box, note, { checked: false, locked: false, auto: false, parents: [] });
+  assert.equal(note.textContent, '');
+  assert.equal(note.hidden, true);
+  assert.equal(box.getAttribute('aria-describedby'), null);
+  assert.equal(box.disabled, false);
 });
 
 test('trust rows carry neutral fact flags and no verdict words', () => {
@@ -333,7 +362,7 @@ test('trust rows carry neutral fact flags and no verdict words', () => {
 
 test('the closed line of the disclosure states the declarations and the always-loaded cost', () => {
   assert.equal(describeFacts(plugin.trust, plugin.cost), 'Declares 1 hook (1 broad), 1 MCP server (1 non-loopback), a scripts/ folder · about 120 tokens always loaded');
-  assert.equal(describeFacts({ hooks: [], mcp_servers: [], has_scripts: false, network_urls: [] }, { always_loaded_tokens: 0, on_invocation_tokens: 0 }), 'Declares nothing · no always-loaded content');
+  assert.equal(describeFacts({ hooks: [], mcp_servers: [], has_scripts: false, network_urls: [] }, { always_loaded_tokens: 0, on_invocation_tokens: 0 }), 'No hooks, MCP servers or scripts · no always-loaded content');
 });
 
 test('the trust disclosure shows flags as plain text and still has no links', () => {
@@ -352,11 +381,11 @@ test('the builder reports the resolved set, answers state() and toggles from out
   assert.deepEqual(updates, [[]]);
   view.toggle('suite', true);
   assert.deepEqual(updates.at(-1), ['suite', 'alpha', 'gamma', 'delta']);
-  assert.deepEqual(view.state('gamma'), { checked: true, locked: true });
-  assert.deepEqual(view.state('suite'), { checked: true, locked: false });
-  assert.deepEqual(view.state('nope'), { checked: false, locked: false });
+  assert.deepEqual(view.state('gamma'), { checked: true, locked: true, auto: true, parents: ['suite'] });
+  assert.deepEqual(view.state('suite'), { checked: true, locked: false, auto: false, parents: [] });
+  assert.deepEqual(view.state('nope'), { checked: false, locked: false, auto: false, parents: [] });
   view.toggle('nope', true);
   assert.deepEqual(view.selected(), ['suite']);
   view.toggle('suite', false);
-  assert.deepEqual(view.state('alpha'), { checked: false, locked: false });
+  assert.deepEqual(view.state('alpha'), { checked: false, locked: false, auto: false, parents: [] });
 });

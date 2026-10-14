@@ -6,9 +6,9 @@ import { createSearch, parseCurated } from '../search/index.js';
 import { readState, writeState } from './url-state.js';
 import { createStatus, copyAndAnnounce, LOAD_ERROR_TEXT, LOADING_TEXT } from './status.js';
 import { createSearchView } from './search-view.js';
-import { createBuilderView, isLocked } from './builder-view.js';
+import { createBuilderView, addSetStates, NOT_IN_SET } from './builder-view.js';
 import { createTray } from './tray.js';
-import { countContents } from './card-view.js';
+import { countContents, applyAddSet, addSetNoteId } from './card-view.js';
 import { REPO } from '../contract/index-contract.js';
 import { t } from '../i18n/t.js';
 
@@ -143,11 +143,10 @@ export async function boot({ doc, win, fetchFn, curatedTexts, loadEffects }) {
           const names = entries.map((e) => e.name);
           traySummary.textContent = n ? t('tray.summary', { count: n, names: `${names.slice(0, 3).join(', ')}${n > 3 ? ', …' : ''}` }) : t('tray.none');
         }
-        const byName = new Map(entries.map((e) => [e.name, e]));
+        const states = addSetStates(entries);
         for (const box of doc.querySelectorAll('input[data-add-set]')) {
-          const entry = byName.get(box.getAttribute('data-add-set'));
-          box.checked = Boolean(entry);
-          box.disabled = isLocked(entry);
+          const name = box.getAttribute('data-add-set');
+          applyAddSet(box, doc.getElementById(addSetNoteId(name)), states.get(name) ?? NOT_IN_SET);
         }
       },
     });

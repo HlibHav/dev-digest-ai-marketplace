@@ -21,10 +21,11 @@
   },
   "search": {
     "label": "Search plugins, skills, agents, commands, hooks and MCP servers",
-    "hint": "Works in English and Ukrainian. Name a type, such as agent or hook, to narrow the list.",
+    "hint": "Name a type, such as agent or hook, to narrow the list.",
     "clearAria": "Clear the search",
     "filterLegend": "Type",
     "fromQuery": "from query",
+    "filterNone": "None in this catalog",
     "resultsAria": "Search results",
     "showing": "Showing",
     "interpType": "type",
@@ -60,7 +61,9 @@
     "version": "v{version}",
     "copyInstall": "Copy install",
     "copyInstallAria": "Copy install commands for {name}",
-    "inInstallSet": "In install set",
+    "addToInstallSet": "Add to install set",
+    "addedAsDependency": "Added as a dependency of {parents}",
+    "alsoRequired": "Also required by {parents}",
     "installsWith": "Installs with",
     "manualCopyHint": "Select the text and copy it by hand:",
     "requires": "Requires",
@@ -83,16 +86,20 @@
     "count": "{count} selected",
     "intro": "Tick the plugins you want. Their dependencies are added for you.",
     "guidance": "Select one or more plugins to get the settings.json snippet and the install commands.",
-    "auto": "added automatically",
-    "autoNote": "({label})",
-    "requiredBy": "required by {names}",
+    "lockedNote": {
+      "one": "Required by {names}. Untick {names} to remove it.",
+      "other": "Required by {names}. Untick them all to remove it."
+    },
+    "lockedNoteBoth": "Required by {names}. Untick both to remove it.",
     "yourSet": "Your set",
-    "declaredBy": "{range} (declared by {from})",
+    "neededBy": "needed by {names}",
+    "neededByRange": "{name} ({range})",
+    "scrollAria": "{title}, scrollable",
     "installCommands": "Install commands",
     "copyCommands": "Copy commands",
     "settingsFile": ".claude/settings.json",
     "copySnippet": "Copy settings.json snippet",
-    "rangeNote": "Version ranges resolve against <plugin>--v<semver> release tags at install time and are not checked by the site."
+    "rangeNote": "Claude Code checks these versions when you install. This page doesn't."
   },
   "tray": {
     "none": "None selected",
@@ -135,7 +142,7 @@
     "flagBroad": "broad matcher",
     "flagNonLoopback": "non-loopback",
     "flagScripts": "scripts",
-    "declaresNothing": "Declares nothing",
+    "declaresNothing": "No hooks, MCP servers or scripts",
     "loadedTokens": "about {tokens} tokens always loaded",
     "loadedNone": "no always-loaded content",
     "facts": "{declared} · {loaded}"

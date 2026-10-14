@@ -109,3 +109,29 @@ test('AC-26: the static list is replaced by the enhanced view once ready', async
   await expect(page.locator('#static-list')).toBeHidden();
   await expect(cards(page)).not.toHaveCount(0);
 });
+
+test('a type with nothing in the catalog is a disabled chip; with a query the counts follow the query', async ({ page }) => {
+  // the fixture ships every type, so serve a copy of the index without commands
+  await page.route(/index\.json/, async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    body.artifacts = body.artifacts.filter((a) => a.type !== 'command');
+    await route.fulfill({ response, json: body });
+  });
+  await open(page);
+  const chip = page.locator('#app input[name="type"][value="command"]');
+  await expect(chip).toBeDisabled();
+  await expect(chip).toHaveAttribute('aria-disabled', 'true');
+  await expect(page.locator('#app label.filter[data-type="command"]')).toHaveAttribute('title', 'None in this catalog');
+  await expect(chip).toHaveAccessibleDescription('None in this catalog');
+  await expect(page.locator('#app input[name="type"][value="skill"]')).toBeEnabled();
+  // a free-text query counts hits, so a type with none stays a normal chip
+  await search(page, 'architecture');
+  await expect(chip).toBeEnabled();
+  await expect(chip).not.toHaveAttribute('aria-disabled');
+});
+
+test('the search hint names the type filter and no longer advertises languages', async ({ page }) => {
+  await open(page);
+  await expect(page.locator('.search-hint')).toHaveText('Name a type, such as agent or hook, to narrow the list.');
+});

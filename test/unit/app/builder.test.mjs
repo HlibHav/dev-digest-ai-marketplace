@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { resolveSelection, settingsSnippet, cliCommands, RANGE_NOTE } from '../../../site-src/app/builder.js';
+import { resolveSelection, settingsSnippet, cliCommands, chosenParents, RANGE_NOTE } from '../../../site-src/app/builder.js';
 
 const dep = (name, range = '^1.0.0') => ({ name, range });
 // sdd -> a, b, c ; b -> d (nested)
@@ -78,13 +78,22 @@ test('AC-30: CLI commands are the marketplace add line then one install line per
   }
 });
 
-test('AC-31: the range note names the release tag format and says the site does not check ranges', () => {
-  assert.match(RANGE_NOTE, /<plugin>--v<semver>/);
-  assert.match(RANGE_NOTE, /install time/);
-  assert.match(RANGE_NOTE, /not checked by the site/);
+test('AC-31: the range note says Claude Code checks the ranges at install and the page does not', () => {
+  assert.match(RANGE_NOTE, /Claude Code checks these versions when you install/);
+  assert.match(RANGE_NOTE, /This page doesn't/);
 });
 
 test('AC-32 support: empty entries produce empty strings', () => {
   assert.equal(settingsSnippet([]), '');
   assert.equal(cliCommands([]), '');
+});
+
+test('chosenParents names the plugins the user ticked, looking through automatic ones', () => {
+  const { entries } = resolveSelection(PLUGINS, ['sdd']);
+  const parents = chosenParents(entries);
+  assert.deepEqual(parents.get('sdd'), []);
+  for (const e of entries.filter((x) => x.auto)) assert.deepEqual(parents.get(e.name), ['sdd'], e.name);
+  const both = chosenParents(resolveSelection(PLUGINS, ['sdd', 'b']).entries);
+  assert.deepEqual(both.get('b'), ['sdd']);
+  assert.deepEqual(both.get('d'), ['sdd', 'b']);
 });

@@ -75,6 +75,7 @@ export function createSearchView({ doc, win, form, input, host, search, curated,
   const boxes = new Map();
   const counts = new Map();
   const froms = new Map();
+  const nones = new Map();
   const filterGroup = h(doc, 'div', { class: 'filters', role: 'group', 'aria-labelledby': 'filters-legend' });
   filterGroup.append(h(doc, 'span', { class: 'filters-legend', id: 'filters-legend' }, t('search.filterLegend')));
   for (const type of TYPES) {
@@ -89,9 +90,11 @@ export function createSearchView({ doc, win, form, input, host, search, curated,
     boxes.set(type, box);
     const count = h(doc, 'span', { class: 'filter-count' });
     const from = h(doc, 'span', { class: 'filter-from', hidden: true }, t('search.fromQuery'));
+    const none = h(doc, 'span', { class: 'sr-only', id: `filter-none-${type}`, hidden: true }, t('search.filterNone'));
     counts.set(type, count);
     froms.set(type, from);
-    filterGroup.append(h(doc, 'label', { class: 'filter', 'data-type': type }, box, TYPE_LABELS[type], ' ', count, ' ', from));
+    nones.set(type, none);
+    filterGroup.append(h(doc, 'label', { class: 'filter', 'data-type': type }, box, TYPE_LABELS[type], ' ', count, ' ', from, none));
   }
 
   const interpretation = h(doc, 'div', { class: 'interpretation', hidden: true });
@@ -132,8 +135,26 @@ export function createSearchView({ doc, win, form, input, host, search, curated,
   function renderFilters(result, eff) {
     const byType = countByType(result.hits);
     for (const type of TYPES) {
-      counts.get(type).textContent = String(byType[type] ?? 0);
+      const n = byType[type] ?? 0;
+      counts.get(type).textContent = String(n);
       froms.get(type).hidden = !(eff.types.includes(type) && !chips.has(type));
+      // With no query the counts describe the whole catalog: a type with nothing in it would only lead to "No results".
+      // A ticked chip stays usable so it can be unticked, and with a query the counts follow the query.
+      const empty = n === 0 && result.state === 'empty-query' && !chips.has(type);
+      const box = boxes.get(type);
+      box.disabled = empty;
+      if (empty) {
+        box.setAttribute('aria-disabled', 'true');
+        box.setAttribute('aria-describedby', nones.get(type).getAttribute('id'));
+      } else {
+        box.removeAttribute('aria-disabled');
+        box.removeAttribute('aria-describedby');
+      }
+      nones.get(type).hidden = !empty;
+      const label = box.parentNode;
+      if (empty) label.setAttribute('title', t('search.filterNone'));
+      else label.removeAttribute('title');
+      label.setAttribute('class', empty ? 'filter is-empty' : 'filter');
     }
   }
 

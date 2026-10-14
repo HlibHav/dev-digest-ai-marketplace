@@ -8,7 +8,7 @@ A calm, docs-grade catalog. One surface moves (the header noise, barely noticeab
 
 ## Answers to the four designer questions
 
-**Install builder placement.** At 1024 px and up it is a sticky right rail ("Install set", 352 px) next to the results, always present. Below 1024 a tray is docked to the bottom of the viewport with the count and a "Review" button; it opens the same `#builder` as a bottom sheet. Plugin cards also get an "In install set" checkbox.
+**Install builder placement.** At 1024 px and up it is a sticky right rail ("Install set", 352 px) next to the results, always present. Below 1024 a tray is docked to the bottom of the viewport with the count and a "Review" button; it opens the same `#builder` as a bottom sheet. Plugin cards also get an "Add to install set" checkbox; a dependency added automatically shows it ticked and locked with "Added as a dependency of ..." beside it.
 
 **Skill → plugin link.** Every non-plugin card ends with an "Installs with beta 1.0.0" chip linking to `#plugin-beta`. Artifact names are set in mono; plugin cards in sans with a contents line, so the two differ before you read the badge.
 

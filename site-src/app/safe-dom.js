@@ -28,3 +28,16 @@ export function h(doc, tag, attrs = {}, ...children) {
   }
   return el;
 }
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+/** A small decorative padlock. Fixed markup, no input, hidden from assistive technology. */
+export function lockIcon(doc) {
+  const svg = doc.createElementNS(SVG_NS, 'svg');
+  for (const [k, v] of Object.entries({ viewBox: '0 0 16 16', width: '12', height: '12', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.6', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true', focusable: 'false', class: 'lock-icon' })) svg.setAttribute(k, v);
+  for (const d of ['M4.5 7V5a3.5 3.5 0 0 1 7 0v2', 'M3.5 7h9v6.5h-9z']) {
+    const path = doc.createElementNS(SVG_NS, 'path');
+    path.setAttribute('d', d);
+    svg.append(path);
+  }
+  return svg;
+}

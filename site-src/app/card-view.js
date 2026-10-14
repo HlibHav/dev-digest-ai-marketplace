@@ -25,8 +25,28 @@ const CONTENT_LABELS = Object.freeze({
 });
 export const DESCRIPTION_LIMIT = 280;
 export const COPY_LABEL = t('card.copyInstall');
-export const ADD_SET_LABEL = t('card.inInstallSet');
+export const ADD_SET_LABEL = t('card.addToInstallSet');
 export const OWNER_LABEL = t('card.installsWith');
+
+export const addSetNoteId = (name) => `add-set-note-${name}`;
+
+/**
+ * Brings a card's install-set box and its note in line with `state` ({checked, locked, auto, parents}).
+ * A locked box says why, in text next to it, and points at that text with aria-describedby.
+ */
+export function applyAddSet(box, note, state) {
+  box.checked = state.checked;
+  box.disabled = state.locked;
+  const parents = state.parents?.join(', ') ?? '';
+  let text = '';
+  if (state.locked && parents) text = state.auto ? t('card.addedAsDependency', { parents }) : t('card.alsoRequired', { parents });
+  if (note) {
+    note.textContent = text;
+    note.hidden = !text;
+  }
+  if (text && note) box.setAttribute('aria-describedby', note.getAttribute('id'));
+  else box.removeAttribute?.('aria-describedby');
+}
 
 /** The two lines AC-21 puts on the clipboard: the marketplace must be added before the plugin installs. */
 export function installLines(pluginName) {
@@ -121,10 +141,12 @@ export function createCard(ctx, hit, extraTerms = []) {
   const actionsEnd = h(d, 'div', { class: 'card-actions-end' }, button);
   const actions = h(d, 'div', { class: 'card-actions' });
   if (isPlugin) {
-    const state = ctx.builder?.state(item.name) ?? { checked: false, locked: false };
+    const state = ctx.builder?.state(item.name) ?? { checked: false, locked: false, auto: false, parents: [] };
     const box = h(d, 'input', { type: 'checkbox', class: 'check', 'data-add-set': item.name, checked: state.checked, disabled: state.locked });
+    const note = h(d, 'span', { class: 'add-set-note', id: addSetNoteId(item.name), hidden: true });
+    applyAddSet(box, note, state);
     box.addEventListener('change', () => ctx.builder?.toggle(item.name, box.checked));
-    actions.append(h(d, 'label', { class: 'add-set' }, box, ADD_SET_LABEL));
+    actions.append(h(d, 'div', { class: 'add-set-wrap' }, h(d, 'label', { class: 'add-set' }, box, ADD_SET_LABEL), note));
   }
   actions.append(actionsEnd);
 
@@ -139,7 +161,7 @@ export function createCard(ctx, hit, extraTerms = []) {
     const compat = owner ? compatibilityText(owner) : null;
     if (compat) card.append(h(d, 'p', { class: 'requires compat' }, compat));
     const news = owner ? whatsNew(owner) : null;
-    if (news) card.append(h(d, 'p', { class: 'whats-new' }, h(d, 'b', {}, news.title), news.note ? ` ${news.note}` : null));
+    if (news) card.append(h(d, 'p', { class: 'whats-new', title: news.note ? `${news.title} ${news.note}` : news.title }, h(d, 'b', {}, news.title), news.note ? ` ${news.note}` : null));
     const deps = owner?.dependencies ?? [];
     if (deps.length) {
       const parts = [];

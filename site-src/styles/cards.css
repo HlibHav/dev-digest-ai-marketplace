@@ -9,6 +9,7 @@
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-1);
   min-width: 0;
+  container-type: inline-size;
   transition: border-color var(--dur-glow) var(--ease), box-shadow var(--dur-glow) var(--ease);
 }
 /* A card's rim on hover and keyboard focus is the non-animated fallback; the shader adds the glow where it can. */
@@ -102,6 +103,8 @@
 .check:checked::after { content: ""; width: 9px; height: 5px; border: 2px solid var(--card-bg); border-top: 0; border-right: 0; transform: translateY(-1px) rotate(-45deg); }
 .check:disabled { cursor: not-allowed; background: var(--surface-2); border-color: var(--border-strong); }
 .check:disabled:checked { background: var(--text-muted); border-color: var(--text-muted); }
+.add-set-wrap { display: flex; flex-direction: column; gap: 2px; min-width: 0; max-width: 100%; }
+.add-set-note { font-size: var(--fs-xs); color: var(--text-muted); padding-left: 26px; text-wrap: pretty; overflow-wrap: anywhere; }
 .add-set { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; font-size: var(--fs-sm); color: var(--text); cursor: pointer; }
 
 /* copy confirmation + manual fallback */
@@ -118,7 +121,7 @@
   border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 8px 10px;
 }
 
-/* ---- trust profile + cost: one disclosure, expanded card spans the row ---- */
+/* ---- trust profile + cost: one disclosure; the card grows in place and keeps its grid cell ---- */
 .trust-cost { border-top: 1px solid var(--border); margin: 2px -18px 0; padding: 0 18px; }
 .trust-cost > summary {
   list-style: none; cursor: pointer;
@@ -134,7 +137,6 @@
 .trust-cost[open] > summary::before { transform: rotate(45deg); }
 .trust-cost > summary b { font-weight: 600; }
 .summary-facts { color: var(--text-muted); }
-.card:has(.trust-cost[open]) { grid-column: 1 / -1; }
 .trust-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-5); padding: 4px 0 16px; }
 .trust, .cost { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
 .trust-title, .cost-title { font-size: var(--fs-sm); font-weight: 650; letter-spacing: .02em; text-transform: uppercase; color: var(--text-muted); }
@@ -176,7 +178,12 @@
   .grid.is-list .card-actions { grid-area: actions; margin-top: 0; justify-self: start; }
   .grid.is-list .trust-cost { grid-area: trust; }
   .grid.is-list .copy-fallback { grid-area: fb; }
+}
+/* the card, not the viewport, decides: two columns only where one card is wide enough (list rows) */
+@container (min-width: 36rem) {
   .trust-body { grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: var(--space-6); }
+}
+@container (min-width: 24rem) {
   .trust-row { grid-template-columns: minmax(0, 1fr) auto; }
 }
 @media (max-width: 639px) {
@@ -187,5 +194,5 @@
 }
 .card > .owner { align-self: flex-start; }
 
-.whats-new { font-size: var(--fs-sm); color: var(--text-muted); }
+.whats-new { font-size: var(--fs-xs); color: var(--text-muted); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 .whats-new b { color: var(--text); font-weight: 600; }
