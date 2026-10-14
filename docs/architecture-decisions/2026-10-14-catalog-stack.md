@@ -1,5 +1,6 @@
 ---
-status: accepted
+status: superseded
+superseded-by: docs/architecture-decisions/2026-10-14-own-webgpu-effects.md
 date: 2026-10-14
 decision-makers: [Glib]
 scope: harness

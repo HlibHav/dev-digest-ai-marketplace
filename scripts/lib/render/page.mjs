@@ -72,7 +72,6 @@ ${plugins.map(pluginCard).join('\n')}
 </section>
 </main>
 <footer class="site-footer">
-<p>Effects by shaders (MIT)</p>
 </footer>
 ${js}
 </body>

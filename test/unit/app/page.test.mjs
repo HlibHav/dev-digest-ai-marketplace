@@ -82,10 +82,6 @@ test('no style attribute and no inline style element (CSP has no unsafe-inline)'
   assert.ok(!/<style\b/i.test(html));
 });
 
-test('AC-57: the shaders credit line is present', () => {
-  assert.ok(html.includes('Effects by shaders (MIT)'));
-});
-
 test('all URLs are relative and the index URL is passed through', () => {
   assert.ok(!/(?:src|href)="(?:\/|[a-z]+:)/i.test(html));
   assert.ok(html.includes('data-index-url="index.json?v=deadbeef"'));

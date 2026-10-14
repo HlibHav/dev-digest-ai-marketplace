@@ -14,7 +14,7 @@ test('package.json requires Node 22 or newer', () => {
 
 test('devDependencies are pinned exactly', () => {
   const dev = pkg().devDependencies ?? {};
-  for (const name of ['minisearch', 'esbuild', 'shaders', '@playwright/test', '@axe-core/playwright']) {
+  for (const name of ['minisearch', 'esbuild', '@playwright/test', '@axe-core/playwright']) {
     assert.ok(name in dev, `${name} missing from devDependencies`);
     assert.match(dev[name], /^\d+\.\d+\.\d+$/, `${name} must be an exact version, got ${dev[name]}`);
   }
@@ -22,7 +22,8 @@ test('devDependencies are pinned exactly', () => {
 
 test('no paid shader package is a dependency', () => {
   const all = { ...pkg().dependencies, ...pkg().devDependencies };
-  assert.equal(Object.keys(all).filter((n) => /shaders.*pro|pro.*shaders/i.test(n)).length, 0);
+  // Effects are the project's own code (ADR 2026-10-14-own-webgpu-effects): no third-party effect library.
+  assert.equal(Object.keys(all).filter((n) => /shader/i.test(n)).length, 0);
 });
 
 test('npm scripts exist', () => {

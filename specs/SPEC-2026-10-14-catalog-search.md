@@ -5,7 +5,7 @@ Status: approved (Glib, 2026-10-14)
 Tier: Full SDD (scorecard 6/6)
 Supersedes: none. Extends the skeleton in `docs/SITE-SPEC.md`; once this spec is approved, SITE-SPEC.md points here.
 Packages: marketplace repo (build script, published static site, CI)
-Design sources: owner text, 2026-10-14: a static GitHub Pages catalog with natural-language (Ukrainian/English) search over all artifacts, an install builder, a per-plugin trust profile, a per-plugin context-cost estimate, and WebGPU visual effects from the `shaders` package used actively (header background and per-card effects). No screenshots or Figma.
+Design sources: owner text, 2026-10-14: a static GitHub Pages catalog with natural-language (Ukrainian/English) search over all artifacts, an install builder, a per-plugin trust profile, a per-plugin context-cost estimate, and active WebGPU visual effects (header background and per-card effects), written in-house after a spike rejected the `shaders` package. No screenshots or Figma.
 Decision record: [docs/architecture-decisions/2026-10-14-catalog-stack.md](../docs/architecture-decisions/2026-10-14-catalog-stack.md)
 
 ## Problem and user
@@ -39,7 +39,7 @@ Non-goals (this spec)
 - The trust profile does not certify, scan for malware or rate safety. It describes.
 - No resolution of dependency ranges against release tags.
 - No LLM or model call at build or run time.
-- No paid ("Pro") shader components.
+- No third-party visual-effects library.
 
 Future phases (out of scope, no ACs): dependency graph; version history from `<plugin>--v<semver>` tags (including a "no matching release tag yet" hint); "didn't find it, request it" prefilled GitHub issue; per-artifact detail page; semantic (embedding) search as an optional mode; a dictionary-miss hint ("we did not translate 'X'").
 
@@ -152,7 +152,7 @@ Proof tags: `red-first unit` | `red-first integration` | `e2e` | `browser (main 
 - AC-54 The effects shall load only after the static list and search are interactive, and IF WebGPU initialisation or the effects bundle fails, THEN the system shall fall back to the static look without an error message to the user and without affecting search or the builder. Proof: e2e. Verify: block the effects bundle; search works and the static gradient shows.
 - AC-55 The JavaScript needed for search, builder and the static look (including the inlined dictionary and word lists) shall be at most 60 KB gzipped, and the build shall warn above 45 KB; the lazily loaded effects code and the index data are excluded. Proof: red-first integration (the build measures each non-lazy output from the bundler's metafile, gzipped).
 - AC-56 Text and controls drawn over any effect shall keep contrast of at least 4.5:1 in every frame, so effects sit behind a scrim or use colours chosen for that. Proof: browser (main session) with sampled frames in light and dark.
-- AC-57 The system shall use only components from the MIT-licensed `shaders` package, never paid "Pro" components, and the site shall credit the package. Proof: red-first integration (the build checks that every imported effect component comes from the MIT package) plus e2e (credit visible).
+- AC-57 The effects code shall be the project's own, with no third-party effect library, and the built effects bundle shall contain no network call (`fetch`, `XMLHttpRequest`, `WebSocket`, `sendBeacon`), no `eval` or `new Function`, and no `http(s)` URL. Proof: red-first integration (the build scans the effects bundle and fails on any match) plus e2e (no CSP violation while effects run).
 
 ## Edge cases
 
@@ -244,7 +244,7 @@ Behaviour-level shape of the published index (snake_case JSON); field names may 
 - Dictionary, stop-word and type-word lists [reused: repo-kept curated files, edited by PR]
 - Token estimates [deterministic: characters / 4]
 - User query and builder selection [untrusted: URL and page]
-- Visual effects [new: third-party MIT package, bundled at build, served same-origin]
+- Visual effects [new: in-house WebGPU code, bundled at build, served same-origin]
 - LLM calls: none
 
 ## Untrusted inputs
@@ -258,7 +258,7 @@ Behaviour-level shape of the published index (snake_case JSON); field names may 
 
 | Question | Decision |
 |---|---|
-| Q-1 / Q-2 Search and UI stack | MiniSearch for search, vanilla JS UI, `shaders` (MIT, `shaders/js` entry) for effects, bundled by esbuild; one `package.json` with a committed lockfile. See the decision record. |
+| Q-1 / Q-2 Search and UI stack | MiniSearch for search, vanilla JS UI, in-house WebGPU effects (ADR 2026-10-14-own-webgpu-effects supersedes the `shaders` choice), bundled by esbuild; one `package.json` with a committed lockfile. See the decision record. |
 | Q-3 No-JS | The plugin list works without JS; everything else enhances (AC-25). |
 | Q-5 Inline hooks/MCP | Read them and merge with the default files (AC-7); Claude Code supports inline and custom-path declarations. |
 | Q-6 Token method | Characters / 4, rounded up, labelled as an estimate (AC-38, AC-39). |
@@ -338,7 +338,7 @@ None.
 | AC-54 | e2e | effects blocked, search unaffected | — | — | — |
 | AC-55 | red-first integration | core JS ≤ 60 KB gzipped | — | — | — |
 | AC-56 | browser (main session) | contrast over effects | — | — | — |
-| AC-57 | red-first integration + e2e | MIT components only, credit shown | — | — | — |
+| AC-57 | red-first integration + e2e | own effects code, no network/eval in effects bundle | — | — | — |
 | AC-59 | e2e | clipboard missing, manual-copy message | — | — | — |
 | AC-58 | red-first unit | type colours ≥ 4.5:1 in both themes | — | — | — |
 
@@ -350,3 +350,4 @@ None.
 | 2026-10-14 | Recorded owner decisions Q-1..Q-14; AC-6 and AC-7 changed from "fail" to "read" per Claude Code docs; added section I (shader effects, AC-49..AC-57) | Owner chose MiniSearch + vanilla + active shader effects, chars/4, proposed bounds |
 | 2026-10-14 | Closed Q-15 and Q-16, added AC-58 (type colour contrast), recorded Playwright + axe for e2e; status approved | Owner approval and planner gate |
 | 2026-10-14 | Planner clarifications: AC-38 verify counts name + description, AC-5 agent/command rules, hook/MCP artifact naming in Contracts, new AC-59 (clipboard fallback) | Gaps found while planning (docs/plans/2026-10-14-catalog-search.md) |
+| 2026-10-14 | AC-57 rewritten: in-house WebGPU effects, effects bundle scanned for network and dynamic code; `shaders` package dropped | Spike found default-on telemetry to shaders.com, `new Function` at module load and residual `fetch` (docs/temp/2026-10-14_shaders-spike.md); owner chose an own shader |

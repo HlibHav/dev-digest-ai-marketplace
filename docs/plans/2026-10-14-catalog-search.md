@@ -518,6 +518,8 @@ Format per step. BE means build scripts or CI. UI means browser code. Skills: no
 
 ### Lane 4: effects
 
+> Amended 2026-10-14: the step-20 spike returned NO-GO on `shaders` (see `docs/temp/2026-10-14_shaders-spike.md`). Per ADR `2026-10-14-own-webgpu-effects`, steps 21-22 implement an in-house WebGPU renderer (WGSL) behind the same controller and fake-renderer design; AC-57 is now the effects-bundle scan. Anything below that names `shaders` APIs, component allowlists or licence checks is replaced by this note.
+
 20. [UI] Spike on the real `shaders` package (first step, on its own)
     - files: `site-src/effects/SPIKE.md` (new), scratch work in `.tmp/spike/`
     - layer: spike · lane 4

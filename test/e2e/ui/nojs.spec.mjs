@@ -45,8 +45,4 @@ test.describe('without JavaScript', () => {
     await expect(page.locator('#static-list [data-card] .badge').first()).toHaveText('plugin');
   });
 
-  test('AC-57: the shaders credit is visible', async ({ page }) => {
-    await page.goto(server.url);
-    await expect(page.getByText('Effects by shaders (MIT)')).toBeVisible();
-  });
 });
