@@ -2,17 +2,20 @@
 // It cannot show pixels; the shader itself is checked in a real browser by the main session (AC-49, AC-50).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { createRenderer } from '../../../site-src/effects/webgpu-renderer.js';
 
 const tick = () => new Promise((r) => setImmediate(r));
 
 function mockGpu({ adapter = true, throwOnSubmit = false } = {}) {
   const calls = [];
+  const writes = [];
   let resolveLost;
   const lost = new Promise((r) => { resolveLost = r; });
   const device = {
     lost,
-    queue: { writeBuffer: () => calls.push('write'), submit: () => { calls.push('submit'); if (throwOnSubmit) throw new Error('x'); } },
+    queue: { writeBuffer: (b, o, data) => { calls.push('write'); writes.push(Array.from(data)); }, submit: () => { calls.push('submit'); if (throwOnSubmit) throw new Error('x'); } },
     createShaderModule: () => { calls.push('module'); return {}; },
     createRenderPipeline: (d) => { calls.push(`pipeline:${d.fragment.entryPoint}`); return { getBindGroupLayout: () => ({}) }; },
     createBuffer: () => ({ destroy: () => calls.push('buffer-destroy') }),
@@ -38,7 +41,7 @@ function mockGpu({ adapter = true, throwOnSubmit = false } = {}) {
     devicePixelRatio: 1,
   };
   const frame = (t) => { const cbs = [...rafs.values()]; rafs.clear(); for (const cb of cbs) cb(t); };
-  return { win, canvas, calls, frame, rafs, device, lose: () => resolveLost({ reason: 'unknown' }) };
+  return { win, canvas, calls, writes, frame, rafs, device, lose: () => resolveLost({ reason: 'unknown' }) };
 }
 
 test('card renderer builds exactly one pipeline with the card entry point', async () => {
@@ -137,4 +140,40 @@ test('the header draws about every other frame, cards on every frame', async () 
   g.frame(1000); g.frame(1016); g.frame(1032); g.frame(1048);
   const submits = g.calls.filter((c) => c === 'submit').length;
   assert.ok(submits >= 1 && submits <= 3, `submits ${submits}`);
+});
+
+const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-6, `${a} vs ${b}`);
+const rgbOf = (hex) => [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16) / 255);
+
+test('the header uniforms carry the whole from, to and mid ramp (16 floats)', async () => {
+  const g = mockGpu();
+  createRenderer({ canvas: g.canvas, kind: 'header', color: '#112233', color2: '#aabbcc', color3: '#445566', win: g.win }).start();
+  await tick();
+  g.frame(1000); g.frame(1050);
+  const params = g.writes.at(-1);
+  assert.equal(params.length, 16);
+  rgbOf('#112233').forEach((v, i) => near(params[4 + i], v));
+  rgbOf('#aabbcc').forEach((v, i) => near(params[8 + i], v));
+  rgbOf('#445566').forEach((v, i) => near(params[12 + i], v));
+});
+
+test('without a middle colour the renderer uses the middle of from and to', async () => {
+  const g = mockGpu();
+  createRenderer({ canvas: g.canvas, kind: 'header', color: '#000000', color2: '#ffffff', win: g.win }).start();
+  await tick();
+  g.frame(1000); g.frame(1050);
+  [12, 13, 14].forEach((i) => near(g.writes.at(-1)[i], 0.5));
+});
+
+test('the header shader is clamped to the ramp: two octaves, about 40 s a drift, no lift past the colours', () => {
+  const src = readFileSync(fileURLToPath(new URL('../../../site-src/effects/webgpu-renderer.js', import.meta.url)), 'utf8');
+  const header = src.slice(src.indexOf('fn fs_header'), src.indexOf('fn fs_card')).split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+  assert.match(src, /k < 2;/, 'fbm has two octaves');
+  assert.match(header, /u\.a\.x \* 0\.025/, 'one drift takes about 1 / 0.025 = 40 seconds');
+  assert.match(header, /u\.c3\.rgb/, 'the middle stop is used');
+  assert.match(header, /clamp\(col, vec3f\(0\.0\), vec3f\(1\.0\)\)/);
+  assert.ok(!/lift|base \+/.test(header), 'nothing is added on top of the ramp');
+  const outputs = header.match(/return vec4f\(([^;]*)\);/g) ?? [];
+  assert.equal(outputs.length, 1);
+  assert.ok(outputs[0].includes('clamp(col'), 'the returned colour is the clamped ramp mix');
 });

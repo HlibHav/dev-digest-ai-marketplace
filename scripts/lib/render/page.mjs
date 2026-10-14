@@ -15,16 +15,16 @@ function dependencies(deps) {
 function pluginCard(plugin) {
   const install = esc((plugin.install_commands ?? []).join('\n'));
   return [
-    `<li class="card" data-card data-type="plugin" data-plugin="${esc(plugin.name)}">`,
+    `<li class="static-item" data-card data-type="plugin" data-plugin="${esc(plugin.name)}">`,
     '<div class="card-head">',
-    '<span class="badge">plugin</span>',
+    '<span class="badge"><span class="badge-shape"></span>plugin</span>',
     `<h3 class="card-title">${esc(plugin.name)}</h3>`,
     `<span class="version">v${esc(plugin.version)}</span>`,
     '</div>',
     `<p class="card-desc">${esc(plugin.description)}</p>`,
     `<p class="meta">Category: <span class="category">${esc(plugin.category)}</span></p>`,
     dependencies(plugin.dependencies ?? []),
-    `<pre class="install"><code>${install}</code></pre>`,
+    `<pre class="install static-cmd"><code>${install}</code></pre>`,
     '</li>',
   ].join('');
 }
@@ -47,32 +47,62 @@ ${css}
 </head>
 <body>
 <header id="site-header" class="site-header" data-fx-header>
+<div class="header-scrim"></div>
 <div class="header-inner">
-<h1>${esc(index.marketplace ?? MARKETPLACE)}</h1>
-<p class="tagline">Find a plugin, skill, agent, command, hook or MCP server, then copy the install steps.</p>
-<form id="search-form" class="search-form" role="search" hidden>
+<div class="header-top">
+<div>
+<h1 class="site-title">${esc(index.marketplace ?? MARKETPLACE)}</h1>
+<p class="site-sub tagline">Find a plugin, skill, agent, command, hook or MCP server, then copy the install steps.</p>
+</div>
+<div class="add-cmd">
+<span class="add-cmd-label">Add the marketplace</span>
+<code>/plugin marketplace add ${esc(REPO)}</code>
+<button type="button" class="copy-btn" id="add-cmd-copy" data-copy="marketplace" aria-label="Copy the marketplace add command" hidden>Copy</button>
+</div>
+</div>
+<form id="search-form" class="search" role="search" hidden>
 <label for="q">${SEARCH_LABEL}</label>
-<input id="q" name="q" type="search" maxlength="200" autocomplete="off" spellcheck="false">
+<div class="search-field">
+<span class="search-icon" aria-hidden="true"></span>
+<input id="q" class="search-input" name="q" type="search" maxlength="200" autocomplete="off" spellcheck="false">
+<button type="button" class="search-clear" id="search-clear" aria-label="Clear the search" hidden>×</button>
+<kbd class="kbd" aria-hidden="true">/</kbd>
+</div>
+<p class="search-hint">Works in English and Ukrainian. Name a type, such as agent or hook, to narrow the list.</p>
 </form>
 </div>
+<div class="load-progress" id="load-progress" hidden></div>
 </header>
-<main id="main">
+<div class="layout">
+<main id="main" class="results">
+<div class="results-head">
+<h2 id="catalog-title" class="catalog-title">Plugins <span class="count">${esc(count)}</span></h2>
+<p id="result-count" class="status" role="status" aria-live="polite" aria-atomic="true"></p>
+</div>
 <p id="status" role="status"></p>
-<p id="result-count" class="result-count" role="status" aria-live="polite" aria-atomic="true"></p>
-<p id="copy-status" class="copy-status" role="status" aria-live="polite"></p>
-<section id="catalog" aria-labelledby="catalog-title">
-<h2 id="catalog-title">Plugins <span class="count">${esc(count)}</span></h2>
-<ul id="static-list" class="cards" data-fx-cards>
+<ul id="static-list" class="static-list" data-fx-cards>
 ${plugins.map(pluginCard).join('\n')}
 </ul>
 <div id="app" data-index-url="${esc(assets.indexUrl)}" data-repo="${esc(REPO)}"></div>
-</section>
-<section id="builder" class="builder" aria-labelledby="builder-title" hidden>
-<h2 id="builder-title">Install builder</h2>
-</section>
 </main>
+<aside class="builder" id="builder" aria-labelledby="builder-title" hidden>
+<div class="builder-head">
+<h2 class="builder-title" id="builder-title">Install set</h2>
+<span class="builder-count" id="builder-count"></span>
+</div>
+</aside>
+</div>
 <footer class="site-footer">
+<div class="footer-inner">
+<span>Trust profiles and cost figures describe what a plugin declares. They are estimates, not a security audit.</span>
+<a href="licenses.txt">Third-party licences</a>
+</div>
 </footer>
+<section class="builder-tray" id="builder-tray" aria-label="Install set summary" hidden>
+<div class="tray-text"><b>Install set</b><span id="tray-summary">None selected</span></div>
+<button type="button" class="btn btn-primary" id="tray-open" aria-controls="builder" aria-expanded="false">Review</button>
+</section>
+<p id="copy-status" class="copy-status" role="status" aria-live="polite"></p>
 ${js}
 </body>
 </html>

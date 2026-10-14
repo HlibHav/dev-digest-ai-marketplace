@@ -33,6 +33,19 @@ test('AC-49: the header palette comes from the page tokens', () => {
   assert.equal(factory.instances[0].opts.color2, '#6d28d9');
 });
 
+test('the header reads the middle of its colour ramp too, and passes it as color3', () => {
+  const { page, factory, ctl } = setup();
+  page.header.cssVars['--header-mid'] = '#445566';
+  ctl.attachHeader(page.header);
+  assert.equal(factory.instances[0].opts.color3, '#445566');
+});
+
+test('without --header-mid the header passes no color3 and the renderer picks the middle itself', () => {
+  const { page, factory, ctl } = setup();
+  ctl.attachHeader(page.header);
+  assert.equal(factory.instances[0].opts.color3, undefined);
+});
+
 test('AC-49: without WebGPU the header is static, with no canvas and no renderer', () => {
   const { page, factory, ctl } = setup({ gpu: false });
   ctl.attachHeader(page.header);

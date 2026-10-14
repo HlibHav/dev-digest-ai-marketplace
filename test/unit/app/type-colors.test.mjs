@@ -62,3 +62,31 @@ test('tokens.css sets --type-color per [data-type] and switches with prefers-col
   }
   assert.match(tokens, /--type-color:/);
 });
+
+// The badge background is color-mix(in srgb, <type> N%, <card>): a linear mix of the encoded channels.
+function mixHex(top, bottom, pct) {
+  const ch = (hex, i) => Number.parseInt(hex.slice(1 + 2 * i, 3 + 2 * i), 16);
+  const out = [0, 1, 2].map((i) => Math.round((ch(top, i) * pct) / 100 + (ch(bottom, i) * (100 - pct)) / 100));
+  return `#${out.map((n) => n.toString(16).padStart(2, '0')).join('')}`;
+}
+
+test('badge text reaches 4.5:1 on its own tint (6 types x 2 themes)', () => {
+  const light = tokens.match(/--badge-tint:\s*(\d+)%/);
+  const dark = tokens.match(/prefers-color-scheme:\s*dark[\s\S]*?--badge-tint:\s*(\d+)%/);
+  assert.ok(light && dark, '--badge-tint missing in tokens.css');
+  const tint = { light: Number(light[1]), dark: Number(dark[1]) };
+  for (const type of TYPES) {
+    for (const theme of THEMES) {
+      const text = TYPE_COLORS[type][theme].text;
+      const bg = mixHex(text, CARD_BG[theme], tint[theme]);
+      const ratio = wcagRatio(text, bg);
+      assert.ok(ratio >= 4.5, `${type}/${theme} on tint ${bg}: ${ratio.toFixed(2)}`);
+    }
+  }
+});
+
+test('the design values for the light command colour and page backgrounds are in place', () => {
+  assert.equal(TYPE_COLORS.command.light.text, '#a84d08');
+  assert.equal(PAGE_BG.light, '#f6f7f9');
+  assert.equal(PAGE_BG.dark, '#0f1115');
+});

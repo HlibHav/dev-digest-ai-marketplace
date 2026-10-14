@@ -1,7 +1,8 @@
 // Effects controller: decides when an effect runs. It knows nothing about WebGPU itself; the renderer
 // factory and the window are injected, so the same logic is tested with fakes (AC-49 to AC-54).
 //
-//   createRenderer({ canvas, kind, color, color2, win, onFailure }) -> { start(), stop(), destroy() }
+//   createRenderer({ canvas, kind, color, color2, color3, win, onFailure }) -> { start(), stop(), destroy() }
+//   For the header, color, color3 and color2 are the --header-from, --header-mid and --header-to ramp.
 //
 // Rules: header effect only with WebGPU and no reduced-motion request; a card effect on hover or focus;
 // at most `maxCanvases` live canvases (header plus one card); every effect is paused while the tab is
@@ -106,14 +107,14 @@ export function createController({ win, createRenderer, maxCanvases = 2 }) {
     setState(el, 'static');
   }
 
-  function create(el, kind, color, color2) {
+  function create(el, kind, color, color2, color3) {
     if (effects.size >= maxCanvases) return null;
     const canvas = doc.createElement('canvas');
     canvas.setAttribute('data-fx-canvas', '');
     canvas.setAttribute('aria-hidden', 'true');
     const eff = { el, kind, canvas, renderer: null, running: false, inView: true, dead: false };
     try {
-      eff.renderer = createRenderer({ canvas, kind, color, color2, win, onFailure: () => fail(eff) });
+      eff.renderer = createRenderer({ canvas, kind, color, color2, color3, win, onFailure: () => fail(eff) });
       effects.add(eff);
       el.prepend(canvas);
       observe(eff);
@@ -163,7 +164,8 @@ export function createController({ win, createRenderer, maxCanvases = 2 }) {
     }
     const from = readVar(win, el, '--header-from') || TYPE_COLORS.plugin[scheme()].effect;
     const to = readVar(win, el, '--header-to') || TYPE_COLORS.skill[scheme()].effect;
-    headerEffect = create(el, 'header', from, to);
+    const mid = readVar(win, el, '--header-mid') || undefined;
+    headerEffect = create(el, 'header', from, to, mid);
   }
 
   function cardColor(card) {

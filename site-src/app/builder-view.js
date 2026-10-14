@@ -20,43 +20,45 @@ export function rowNote(entry) {
 export const isLocked = (entry) => Boolean(entry && entry.requiredBy.length > 0);
 
 /**
- * opts: {doc, win, host, plugins[], selected[], status, onChange(selected[])}.
- * Returns {update(), selected()}. `host` is the #builder section; it is un-hidden here.
+ * opts: {doc, win, host, plugins[], selected[], status, onChange(selected[]), onUpdate(entries[])}.
+ * Returns {update(), selected(), toggle(name, on), state(name)}. `host` is the #builder panel; it is un-hidden here.
+ * onUpdate runs after every change with the resolved set, so the tray and the cards' install-set boxes can follow.
  */
-export function createBuilderView({ doc, win, host, plugins, selected: initial = [], status, onChange }) {
+export function createBuilderView({ doc, win, host, plugins, selected: initial = [], status, onChange, onUpdate }) {
   const known = new Set(plugins.map((p) => p.name));
   const selected = new Set(initial.filter((n) => known.has(n)));
   const rows = new Map();
+  let current = new Map();
 
   const list = h(doc, 'ul', { class: 'builder-list' });
   plugins.forEach((plugin, i) => {
     const noteId = `builder-note-${i}`;
-    const input = h(doc, 'input', { type: 'checkbox', name: 'plugin', value: plugin.name, 'aria-describedby': noteId });
+    const input = h(doc, 'input', { type: 'checkbox', class: 'check', name: 'plugin', value: plugin.name, 'aria-describedby': noteId });
     const note = h(doc, 'span', { class: 'row-note', id: noteId });
-    input.addEventListener('change', () => {
-      if (input.checked) selected.add(plugin.name);
-      else selected.delete(plugin.name);
-      update();
-      onChange?.([...selected]);
-    });
-    rows.set(plugin.name, { input, note });
-    list.append(
-      h(doc, 'li', { class: 'builder-row' }, h(doc, 'label', {}, input, ' ', h(doc, 'span', { class: 'plugin-name' }, plugin.name), ' ', h(doc, 'span', { class: 'version' }, `v${plugin.version}`)), ' ', note),
-    );
+    input.addEventListener('change', () => toggle(plugin.name, input.checked));
+    const li = h(doc, 'li', { class: 'builder-row' }, h(doc, 'label', {}, input, ' ', h(doc, 'span', { class: 'plugin-name' }, plugin.name), ' ', h(doc, 'span', { class: 'version' }, `v${plugin.version}`)), ' ', note);
+    rows.set(plugin.name, { input, note, li });
+    list.append(li);
   });
 
-  const output = h(doc, 'div', { class: 'builder-output' });
+  const output = h(doc, 'div', { class: 'builder-result' });
   host.append(
     h(doc, 'p', { class: 'builder-intro' }, 'Tick the plugins you want. Their dependencies are added for you.'),
     list,
     output,
   );
 
-  function copyBlock(label, copyName, text) {
+  function copyBlock(title, label, copyName, text) {
     const pre = h(doc, 'pre', { class: 'install' }, text);
     const button = h(doc, 'button', { type: 'button', class: 'copy-btn', 'data-copy': copyName }, label);
     button.addEventListener('click', () => copyAndAnnounce({ text, win, status, onManual: () => pre }));
-    return [pre, button];
+    return h(
+      doc,
+      'div',
+      { class: 'builder-output' },
+      h(doc, 'div', { class: 'output-head' }, h(doc, 'div', { class: 'output-title' }, h(doc, 'b', {}, title)), button),
+      pre,
+    );
   }
 
   function renderOutput(entries) {
@@ -75,29 +77,41 @@ export function createBuilderView({ doc, win, host, plugins, selected: initial =
       ),
     );
     output.replaceChildren(
-      h(doc, 'h3', {}, 'Your set'),
+      h(doc, 'h3', { class: 'section-title' }, 'Your set'),
       h(doc, 'ul', { class: 'builder-set' }, ...items),
       h(doc, 'p', { class: 'range-note' }, RANGE_NOTE),
-      h(doc, 'h3', {}, 'Install commands'),
-      ...copyBlock('Copy commands', 'commands', cliCommands(entries)),
-      h(doc, 'h3', {}, '.claude/settings.json'),
-      ...copyBlock('Copy settings.json snippet', 'snippet', settingsSnippet(entries)),
+      copyBlock('Install commands', 'Copy commands', 'commands', cliCommands(entries)),
+      copyBlock('.claude/settings.json', 'Copy settings.json snippet', 'snippet', settingsSnippet(entries)),
     );
   }
+
+  function toggle(name, on) {
+    if (!known.has(name)) return;
+    if (on) selected.add(name);
+    else selected.delete(name);
+    update();
+    onChange?.([...selected]);
+  }
+
+  /** What a plugin card's install-set box shows: ticked when in the set, locked when another plugin needs it. */
+  const state = (name) => ({ checked: current.has(name), locked: isLocked(current.get(name)) });
 
   function update() {
     const { entries } = resolveSelection(plugins, [...selected]);
     const byName = new Map(entries.map((e) => [e.name, e]));
+    current = byName;
     for (const [name, row] of rows) {
       const entry = byName.get(name);
       row.input.checked = Boolean(entry);
       row.input.disabled = isLocked(entry);
       row.note.textContent = rowNote(entry);
+      row.li.setAttribute('class', `builder-row${entry ? ' is-picked' : ''}${isLocked(entry) ? ' is-locked' : ''}`);
     }
     renderOutput(entries);
+    onUpdate?.(entries);
   }
 
   host.hidden = false;
   update();
-  return { update, selected: () => [...selected] };
+  return { update, selected: () => [...selected], toggle, state };
 }

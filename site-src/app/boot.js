@@ -4,9 +4,12 @@ import { h } from './safe-dom.js';
 import { assertIndexShape } from '../contract/index-contract.js';
 import { createSearch, parseCurated } from '../search/index.js';
 import { readState, writeState } from './url-state.js';
-import { createStatus, LOAD_ERROR_TEXT } from './status.js';
+import { createStatus, copyAndAnnounce, LOAD_ERROR_TEXT, LOADING_TEXT } from './status.js';
 import { createSearchView } from './search-view.js';
-import { createBuilderView } from './builder-view.js';
+import { createBuilderView, isLocked } from './builder-view.js';
+import { createTray } from './tray.js';
+import { countContents } from './card-view.js';
+import { REPO } from '../contract/index-contract.js';
 
 export const RETRY_LABEL = 'Retry loading the search index';
 
@@ -23,7 +26,7 @@ export async function boot({ doc, win, fetchFn, curatedTexts, loadEffects }) {
   const indexUrl = app.getAttribute('data-index-url');
 
   async function load() {
-    app.replaceChildren();
+    app.replaceChildren(h(doc, 'div', { class: 'index-loading' }, h(doc, 'span', { class: 'spinner' }), h(doc, 'p', {}, LOADING_TEXT)));
     app.setAttribute('aria-busy', 'true');
     status.loading();
     try {
@@ -48,7 +51,16 @@ export async function boot({ doc, win, fetchFn, curatedTexts, loadEffects }) {
     retry.addEventListener('click', () => {
       load();
     });
-    app.replaceChildren(h(doc, 'div', { class: 'load-error', role: 'alert' }, h(doc, 'p', {}, LOAD_ERROR_TEXT), retry));
+    app.replaceChildren(
+      h(
+        doc,
+        'div',
+        { class: 'load-error', role: 'alert' },
+        h(doc, 'span', { class: 'state-icon', 'aria-hidden': 'true' }, '!'),
+        h(doc, 'p', {}, LOAD_ERROR_TEXT),
+        h(doc, 'div', { class: 'state-actions' }, retry),
+      ),
+    );
   }
 
   function mount(index, curated, search) {
@@ -58,6 +70,11 @@ export async function boot({ doc, win, fetchFn, curatedTexts, loadEffects }) {
     const staticList = doc.getElementById('static-list');
     const title = doc.getElementById('catalog-title');
     const plugins = new Map(index.plugins.map((p) => [p.name, p]));
+    const contents = countContents(index.artifacts);
+    const clearButton = doc.getElementById('search-clear');
+    const syncClear = () => {
+      if (clearButton) clearButton.hidden = !input.value;
+    };
     const initial = readState(win.location.search, plugins.keys());
     const state = { q: initial.q, types: initial.types, plugins: initial.plugins };
 
@@ -69,6 +86,11 @@ export async function boot({ doc, win, fetchFn, curatedTexts, loadEffects }) {
     app.replaceChildren();
     input.value = state.q;
     const countSpan = title?.querySelector('.count') ?? null;
+    let builderView = null;
+    const builderCtx = {
+      state: (name) => builderView?.state(name) ?? { checked: false, locked: false },
+      toggle: (name, on) => builderView?.toggle(name, on),
+    };
     const view = createSearchView({
       doc,
       win,
@@ -83,6 +105,9 @@ export async function boot({ doc, win, fetchFn, curatedTexts, loadEffects }) {
         win,
         status,
         plugins,
+        contents,
+        builder: builderCtx,
+        reveal: (name) => view.reveal(name),
         onRendered: (eff) => {
           if (countSpan) countSpan.textContent = `${eff.hits.length} ${eff.hits.length === 1 ? 'entry' : 'entries'}`;
         },
@@ -90,10 +115,13 @@ export async function boot({ doc, win, fetchFn, curatedTexts, loadEffects }) {
       onChange: ({ q, types }) => {
         state.q = q;
         state.types = types;
+        syncClear();
         commit();
       },
     });
-    createBuilderView({
+    const countEl = doc.getElementById('builder-count');
+    const traySummary = doc.getElementById('tray-summary');
+    builderView = createBuilderView({
       doc,
       win,
       host: builderHost,
@@ -104,7 +132,52 @@ export async function boot({ doc, win, fetchFn, curatedTexts, loadEffects }) {
         state.plugins = selected;
         commit();
       },
+      // The rail, the tray and the install-set boxes on the cards all show the same set.
+      onUpdate: (entries) => {
+        const n = entries.length;
+        if (countEl) countEl.textContent = n ? `${n} selected` : '';
+        if (traySummary) {
+          const names = entries.map((e) => e.name);
+          traySummary.textContent = n ? `${n} ${n === 1 ? 'plugin' : 'plugins'}: ${names.slice(0, 3).join(', ')}${n > 3 ? ', …' : ''}` : 'None selected';
+        }
+        const byName = new Map(entries.map((e) => [e.name, e]));
+        for (const box of doc.querySelectorAll('input[data-add-set]')) {
+          const entry = byName.get(box.getAttribute('data-add-set'));
+          box.checked = Boolean(entry);
+          box.disabled = isLocked(entry);
+        }
+      },
     });
+    const tray = doc.getElementById('builder-tray');
+    const trayButton = doc.getElementById('tray-open');
+    if (tray && trayButton) {
+      createTray({ doc, win, panel: builderHost, tray, button: trayButton, behind: [doc.getElementById('site-header'), doc.getElementById('main'), doc.querySelector('.site-footer'), tray] });
+    }
+
+    // Copy for the marketplace line in the header, the clear mark and the "/" shortcut.
+    const addCopy = doc.getElementById('add-cmd-copy');
+    if (addCopy) {
+      addCopy.hidden = false;
+      addCopy.addEventListener('click', () =>
+        copyAndAnnounce({ text: `/plugin marketplace add ${REPO}`, win, status, onManual: () => doc.querySelector('.add-cmd code') }),
+      );
+    }
+    if (clearButton) {
+      clearButton.addEventListener('click', () => {
+        input.value = '';
+        input.dispatchEvent(new win.Event('input', { bubbles: true }));
+        input.focus();
+      });
+    }
+    input.addEventListener('input', syncClear);
+    doc.addEventListener('keydown', (event) => {
+      if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey) return;
+      const t = event.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+      event.preventDefault();
+      input.focus();
+    });
+    syncClear();
     // Render first, then swap the static list for the enhanced view in the same task: no layout jump.
     view.run(true);
     form.hidden = false;

@@ -1,6 +1,6 @@
 // Small DOM builder that only creates text nodes and a fixed set of elements and attributes (AC-24).
 const TAGS = new Set([
-  'a', 'article', 'button', 'code', 'details', 'div', 'footer', 'form', 'h1', 'h2', 'h3', 'header', 'input',
+  'a', 'article', 'b', 'button', 'code', 'details', 'div', 'footer', 'form', 'h1', 'h2', 'h3', 'header', 'input',
   'label', 'li', 'mark', 'nav', 'p', 'pre', 'section', 'span', 'strong', 'summary', 'ul', 'ol', 'textarea',
 ]);
 const ATTRS = new Set([

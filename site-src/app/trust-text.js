@@ -35,3 +35,29 @@ export function describeTrust(trust) {
   if (trust.has_scripts) lines.push('Contains a scripts/ folder');
   return { empty: false, sentence: `Declares ${parts.join(', ')}.`, lines };
 }
+
+/**
+ * One row per line of describeTrust(), with neutral fact flags ("broad matcher", "non-loopback", "scripts").
+ * A flag states a fact about the declaration. It is never a verdict.
+ */
+export function trustRows(trust) {
+  const { lines } = describeTrust(trust);
+  const hooks = trust.hooks ?? [];
+  const servers = trust.mcp_servers ?? [];
+  const flags = [
+    ...hooks.map((hook) => (hook.broad ? ['broad matcher'] : [])),
+    ...servers.map((server) => (server.non_loopback ? ['non-loopback'] : [])),
+  ];
+  if (trust.has_scripts) flags.push(['scripts']);
+  return lines.map((text, i) => ({ text, flags: flags[i] ?? [] }));
+}
+
+const fmt = (n) => n.toLocaleString('en-US');
+
+/** The facts shown on the closed line of a plugin's disclosure: what it declares and what it loads up front. */
+export function describeFacts(trust, cost) {
+  const t = describeTrust(trust);
+  const declared = t.empty ? 'Declares nothing' : t.sentence.replace(/\.$/, '');
+  const loaded = cost?.always_loaded_tokens > 0 ? `about ${fmt(cost.always_loaded_tokens)} tokens always loaded` : 'no always-loaded content';
+  return `${declared} · ${loaded}`;
+}

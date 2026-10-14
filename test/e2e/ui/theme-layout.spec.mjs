@@ -3,6 +3,9 @@ import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { serve } from '../helpers/serve.mjs';
 import { buildFixtureSite } from '../helpers/build-fixture-site.mjs';
+import { PAGE_BG } from '../../../site-src/app/type-colors.js';
+
+const rgbOf = (hex) => `rgb(${[1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16)).join(', ')})`;
 
 let server;
 
@@ -40,7 +43,7 @@ for (const scheme of ['light', 'dark']) {
     test(`the page background follows the ${scheme} preference`, async ({ page }) => {
       await page.goto(server.url);
       const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-      expect(bg).toBe(scheme === 'dark' ? 'rgb(18, 18, 18)' : 'rgb(255, 255, 255)');
+      expect(bg).toBe(rgbOf(PAGE_BG[scheme]));
     });
   });
 }

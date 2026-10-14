@@ -41,10 +41,16 @@ naming the path and the rule it broke.
 
 - Header: `<header id="site-header" data-fx-header>`.
 - Results container: `[data-fx-cards]`. Cards: `[data-card][data-type]`.
-- The CSS variable `--type-color` is set per card.
+- The CSS variable `--type-color` is set per card (`[data-type]` in `site-src/styles/tokens.css`).
+- The header effect reads `--header-from`, `--header-mid` and `--header-to` and clamps its output to that ramp, so the text contrast over the scrim holds for every frame.
+- A card's glow follows hover and `:focus-within`; the controller listens to `focusin` and `focusout` on the card list.
 - Effects write `data-fx-state="on|off|static"` on the header and on the active card, and create `canvas[data-fx-canvas]`.
 - The effects entry is `site-src/effects/fx-entry.js`, exporting `startEffects({root, win}) -> Promise<void>`. It never throws to the caller.
 - At most 2 live canvases at any time: the header and at most one card.
+
+## Page structure (restyle v1)
+
+`header#site-header` (scrim, `.header-inner`), then `.layout` holding `main.results` and `aside#builder` (so Tab order is results, then builder), then the footer and the `.builder-tray`. At 1024 px and up `#builder` is a sticky rail; below it the tray's "Review" button (`aria-controls="builder"`) opens it as a modal bottom sheet (`data-open`, rest of the page `inert`).
 
 ## Page renderer (static render to integration)
 

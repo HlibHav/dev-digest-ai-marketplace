@@ -34,6 +34,16 @@ export function effectiveResult(result, chips) {
   };
 }
 
+/** Free-text queries read as rows with room for the description; the empty query and pure type listings stay a grid. */
+export const isListMode = (eff) => eff.terms.length > 0;
+
+/** Number of hits per type, for the counts on the filter pills. */
+export function countByType(hits) {
+  const counts = {};
+  for (const hit of hits) counts[hit.doc.type] = (counts[hit.doc.type] ?? 0) + 1;
+  return counts;
+}
+
 /** Text for the polite result-count region. */
 export function countMessage(state, total, shown = total) {
   if (state === 'no-results') return 'No results';
@@ -60,7 +70,10 @@ export function createSearchView({ doc, win, form, input, host, search, curated,
   let timer = null;
 
   const boxes = new Map();
-  const filterGroup = h(doc, 'div', { class: 'filters', role: 'group', 'aria-label': 'Filter by type' });
+  const counts = new Map();
+  const froms = new Map();
+  const filterGroup = h(doc, 'div', { class: 'filters', role: 'group', 'aria-labelledby': 'filters-legend' });
+  filterGroup.append(h(doc, 'span', { class: 'filters-legend', id: 'filters-legend' }, 'Type'));
   for (const type of TYPES) {
     const box = h(doc, 'input', { type: 'checkbox', name: 'type', value: type, checked: chips.has(type) });
     box.addEventListener('change', () => {
@@ -71,13 +84,18 @@ export function createSearchView({ doc, win, form, input, host, search, curated,
       onChange({ q: input.value, types: [...chips] });
     });
     boxes.set(type, box);
-    filterGroup.append(h(doc, 'label', { class: 'filter' }, box, ' ', TYPE_LABELS[type]));
+    const count = h(doc, 'span', { class: 'filter-count' });
+    const from = h(doc, 'span', { class: 'filter-from', hidden: true }, 'from query');
+    counts.set(type, count);
+    froms.set(type, from);
+    filterGroup.append(h(doc, 'label', { class: 'filter', 'data-type': type }, box, TYPE_LABELS[type], ' ', count, ' ', from));
   }
 
+  const interpretation = h(doc, 'div', { class: 'interpretation', hidden: true });
   const noResults = h(doc, 'div', { class: 'no-results', hidden: true });
-  const list = h(doc, 'ul', { class: 'cards results', 'data-fx-cards': '', 'aria-label': 'Search results' });
+  const list = h(doc, 'ul', { class: 'grid', 'data-fx-cards': '', 'aria-label': 'Search results' });
   const more = h(doc, 'div', { class: 'more', hidden: true });
-  host.append(filterGroup, noResults, list, more);
+  host.append(interpretation, filterGroup, noResults, list, more);
 
   const syncBoxes = () => {
     for (const [type, box] of boxes) box.checked = chips.has(type);
@@ -93,21 +111,49 @@ export function createSearchView({ doc, win, form, input, host, search, curated,
     input.focus();
   }
 
+  function renderInterpretation(eff) {
+    if (!eff.types.length && !eff.terms.length) {
+      interpretation.replaceChildren();
+      interpretation.hidden = true;
+      return;
+    }
+    const chip = (label, value) => h(doc, 'span', { class: 'interp-chip' }, h(doc, 'b', {}, label), ' ', value);
+    interpretation.replaceChildren(
+      'Showing',
+      ...eff.types.map((t) => chip('type', TYPE_LABELS[t] ?? t)),
+      ...eff.terms.map((t) => chip('text', t)),
+    );
+    interpretation.hidden = false;
+  }
+
+  function renderFilters(result, eff) {
+    const byType = countByType(result.hits);
+    for (const type of TYPES) {
+      counts.get(type).textContent = String(byType[type] ?? 0);
+      froms.get(type).hidden = !(eff.types.includes(type) && !chips.has(type));
+    }
+  }
+
   function renderNoResults(eff) {
     const hasFilter = eff.types.length > 0;
     const button = h(doc, 'button', { type: 'button', class: 'clear-filter', 'data-clear': hasFilter ? 'filter' : 'search' }, hasFilter ? 'Clear the type filter' : 'Clear the search');
     button.addEventListener('click', clearFilter);
     noResults.replaceChildren(
+      h(doc, 'span', { class: 'state-icon', 'aria-hidden': 'true' }, '?'),
       h(doc, 'p', { class: 'no-results-title' }, 'No results'),
-      h(doc, 'p', { class: 'interpretation' }, `Searched for: ${describeInterpretation(eff.types, eff.terms) || 'nothing'}`),
-      button,
+      h(doc, 'p', { class: 'no-results-detail' }, `Searched for: ${describeInterpretation(eff.types, eff.terms) || 'nothing'}`),
+      h(doc, 'div', { class: 'state-actions' }, button),
     );
     noResults.hidden = false;
   }
 
   function run(announce = true) {
-    const eff = effectiveResult(search.search(input.value), [...chips]);
+    const result = search.search(input.value);
+    const eff = effectiveResult(result, [...chips]);
     const visible = eff.hits.slice(0, shown);
+    list.setAttribute('class', isListMode(eff) ? 'grid is-list' : 'grid');
+    renderInterpretation(eff);
+    renderFilters(result, eff);
     list.replaceChildren(...visible.map((hit) => createCard(cardCtx, hit, eff.terms)));
     if (eff.state === 'no-results') renderNoResults(eff);
     else {
@@ -131,6 +177,24 @@ export function createSearchView({ doc, win, form, input, host, search, curated,
     return eff;
   }
 
+  /** Shows the card of `name`, clearing the query and the type filter first when the current results leave it out. */
+  function reveal(name) {
+    const find = () => doc.getElementById(`plugin-${name}`);
+    if (!find()) {
+      input.value = '';
+      chips.clear();
+      syncBoxes();
+      shown = Number.MAX_SAFE_INTEGER;
+      run();
+      shown = PAGE_SIZE;
+      onChange({ q: '', types: [] });
+    }
+    const target = find();
+    if (!target) return;
+    if (typeof target.scrollIntoView === 'function') target.scrollIntoView({ block: 'center' });
+    target.focus();
+  }
+
   input.addEventListener('input', () => {
     win.clearTimeout(timer);
     timer = win.setTimeout(() => {
@@ -147,5 +211,5 @@ export function createSearchView({ doc, win, form, input, host, search, curated,
     onChange({ q: input.value, types: [...chips] });
   });
 
-  return { run };
+  return { run, reveal };
 }

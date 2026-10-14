@@ -13,6 +13,10 @@ export function createStatus(doc, win) {
   const statusEl = doc.getElementById('status');
   const countEl = doc.getElementById('result-count');
   const copyEl = doc.getElementById('copy-status');
+  const progressEl = doc.getElementById('load-progress');
+  const showProgress = (on) => {
+    if (progressEl) progressEl.hidden = !on;
+  };
   const set = (el, text) => {
     if (el) el.textContent = text;
   };
@@ -22,8 +26,14 @@ export function createStatus(doc, win) {
     win.setTimeout(() => set(el, text), ANNOUNCE_DELAY_MS);
   };
   return {
-    loading: () => set(statusEl, LOADING_TEXT),
-    clear: () => set(statusEl, ''),
+    loading: () => {
+      set(statusEl, LOADING_TEXT);
+      showProgress(true);
+    },
+    clear: () => {
+      set(statusEl, '');
+      showProgress(false);
+    },
     count: (text) => set(countEl, text),
     copied: () => announce(copyEl, COPIED_TEXT),
     manual: () => announce(copyEl, MANUAL_COPY_MESSAGE),

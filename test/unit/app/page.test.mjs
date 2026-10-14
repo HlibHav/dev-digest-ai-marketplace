@@ -96,7 +96,7 @@ test('the DOM contract hooks exist', () => {
   assert.match(html, /<p id="copy-status"[^>]*role="status"/);
   assert.match(html, /<ul id="static-list"[^>]* data-fx-cards>/);
   assert.match(html, /id="app"/);
-  assert.match(html, /<section id="builder"/);
+  assert.match(html, /<aside class="builder" id="builder"[^>]* hidden>/);
   assert.match(html, /<label for="q">/);
   assert.match(html, /<html lang="en">/);
   assert.match(html, /name="viewport"/);
@@ -106,4 +106,35 @@ test('an empty catalog still renders a valid page', () => {
   const out = renderPage({ index: { ...INDEX, plugins: [] }, assets: ASSETS, csp: CSP });
   assert.ok(out.includes('0 plugins'));
   assert.ok(out.includes('id="static-list"'));
+});
+
+test('the layout puts the results before the install rail, so Tab order is results then builder', () => {
+  const at = (needle) => html.indexOf(needle);
+  assert.ok(at('<div class="layout">') > at('</header>'));
+  assert.ok(at('<main id="main" class="results">') > at('<div class="layout">'));
+  assert.ok(at('<aside class="builder"') > at('</main>'));
+  assert.ok(at('<aside class="builder"') < at('<footer'));
+});
+
+test('the header carries its layers, search controls and the load bar; JS-only controls start hidden', () => {
+  for (const hook of ['class="header-scrim"', 'class="header-inner"', 'class="add-cmd"', 'class="search-icon"', 'class="kbd"', 'class="search-hint"', 'id="load-progress"']) {
+    assert.ok(html.includes(hook), hook);
+  }
+  assert.match(html, /<button[^>]*id="search-clear"[^>]* hidden>/);
+  assert.match(html, /<button[^>]*id="add-cmd-copy"[^>]* hidden>/);
+  assert.match(html, /<div class="load-progress" id="load-progress" hidden>/);
+  assert.ok(!html.includes('<canvas'), 'the effects create their own canvas');
+});
+
+test('the tray points at the builder, starts hidden and sits after the footer', () => {
+  assert.match(html, /<section class="builder-tray" id="builder-tray"[^>]* hidden>/);
+  assert.match(html, /<button[^>]*id="tray-open"[^>]*aria-controls="builder"[^>]*aria-expanded="false"/);
+  assert.ok(html.indexOf('id="builder-tray"') > html.indexOf('<footer'));
+});
+
+test('the static list is a .static-list of static items, with no ids that the interactive cards reuse', () => {
+  assert.match(html, /<ul id="static-list" class="static-list" data-fx-cards>/);
+  assert.equal((html.match(/class="static-item"/g) ?? []).length, 3);
+  assert.ok(!/id="plugin-/.test(html));
+  assert.ok(html.includes('<h2 id="catalog-title" class="catalog-title">Plugins <span class="count">3 plugins</span></h2>'));
 });

@@ -11,7 +11,7 @@ import { CuratedError, FILES, parseCurated } from '../../site-src/search/curated
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const VIRTUAL_OUT = '.bundle-out';
-const CSS_ORDER = ['tokens', 'base', 'header', 'cards'];
+const CSS_ORDER = ['tokens', 'base', 'header', 'layout', 'cards', 'builder'];
 const CURATED_KEYS = Object.keys(FILES);
 
 /** Path of each curated file: <root>/data/<name> when the root has one, else the repo's own. */

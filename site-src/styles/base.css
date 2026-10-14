@@ -1,59 +1,40 @@
-/* Base layout. Load after tokens.css. Mobile first; nothing is wider than the viewport at 320 px. */
+/* Base: reset, page, focus and the small utilities. Tokens come from tokens.css. */
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
-
 html { -webkit-text-size-adjust: 100%; }
-
 body {
   margin: 0;
   background: var(--page-bg);
   color: var(--text);
-  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-sans);
+  font-size: var(--fs-md);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
   overflow-wrap: anywhere;
 }
-
-main, .site-footer { max-width: 72rem; margin: 0 auto; padding: 1rem; }
-
-h1, h2, h3 { line-height: 1.25; margin: 0 0 0.5rem; }
-h1 { font-size: 1.75rem; }
-h2 { font-size: 1.35rem; margin-top: 1.5rem; }
-p { margin: 0 0 0.75rem; }
-
-a { color: var(--focus); }
-code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.875rem; }
+code, kbd, pre { font-family: var(--font-mono); }
+h1, h2, h3, h4, h5, p, ul, ol, dl, dd, fieldset { margin: 0; padding: 0; }
+ul, ol { list-style: none; }
+fieldset { border: 0; min-width: 0; }
+a { color: inherit; }
+button { font: inherit; color: inherit; }
 pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+/* focus: one rule for every control */
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
-mark { background: var(--mark-bg); color: var(--mark-text); border-radius: 2px; padding: 0 0.1em; }
+mark, .mark { background: var(--mark-bg); color: var(--mark-text); border-radius: 3px; padding: 0 2px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
 
-.result-count, .copy-status, #status { min-height: 1.5rem; color: var(--text-muted); margin: 0; }
-
-.count { font-size: 0.9rem; font-weight: 400; color: var(--text-muted); }
-
-.site-footer { color: var(--text-muted); font-size: 0.875rem; }
-
-button {
-  font: inherit;
-  color: var(--text);
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.4rem 0.75rem;
-  min-height: 2.5rem;
-  cursor: pointer;
-}
-button:hover { border-color: var(--text-muted); }
-
-input[type="search"], input[type="text"], textarea {
-  font: inherit;
-  width: 100%;
-  min-height: 2.75rem;
-  padding: 0.5rem 0.75rem;
-  color: var(--text);
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+/* live regions that are empty take no space */
+#status:empty, .copy-status:empty, .status:empty { display: none; }
+.notice, #status { font-size: var(--fs-sm); color: var(--text-muted); }
+#status:not(:empty) { padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card-bg); }
+/* the copy confirmation floats above the page, so it never moves the layout */
+.copy-status {
+  position: fixed; left: 50%; bottom: var(--space-5); transform: translateX(-50%); z-index: 30;
+  max-width: calc(100vw - 2 * var(--space-4)); padding: 8px 14px;
+  background: var(--text); color: var(--page-bg); border-radius: var(--radius-pill); font-size: var(--fs-sm);
 }
 
 @media (prefers-reduced-motion: reduce) {

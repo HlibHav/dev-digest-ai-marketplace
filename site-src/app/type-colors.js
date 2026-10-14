@@ -9,10 +9,10 @@ export const TYPE_COLORS = Object.freeze({
   plugin: pair('#1d4ed8', '#60a5fa'),
   skill: pair('#6d28d9', '#a78bfa'),
   agent: pair('#047857', '#34d399'),
-  command: pair('#b45309', '#fbbf24'),
+  command: pair('#a84d08', '#fbbf24'),
   hook: pair('#be123c', '#fb7185'),
   mcp_server: pair('#0e7490', '#22d3ee'),
 });
 
-export const PAGE_BG = Object.freeze({ light: '#ffffff', dark: '#121212' });
-export const CARD_BG = Object.freeze({ light: '#ffffff', dark: '#1e1e1e' });
+export const PAGE_BG = Object.freeze({ light: '#f6f7f9', dark: '#0f1115' });
+export const CARD_BG = Object.freeze({ light: '#ffffff', dark: '#171a21' });

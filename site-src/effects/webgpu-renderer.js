@@ -1,10 +1,12 @@
 // The project's own WebGPU effects (no effect library; see the ADR 2026-10-14-own-webgpu-effects).
 // One full-screen triangle and one render pipeline per effect kind:
-//   header: a slow noise gradient between two palette colours,
+//   header: a slow two-octave noise drift over the page's from -> mid -> to colour ramp. The output is a mix of
+//           those three colours and nothing else, so the contrast guarantee of the scrim holds for every pixel,
 //   card:   a soft glow in the card's type colour, drifting around the card.
 // The shader source is a constant in this file. This module makes no network call and starts no worker.
 //
-//   createRenderer({ canvas, kind, color, color2, win, onFailure }) -> { start(), stop(), destroy() }
+//   createRenderer({ canvas, kind, color, color2, color3, win, onFailure }) -> { start(), stop(), destroy() }
+//   header: color = from, color3 = mid (optional, defaults to the middle of from and to), color2 = to.
 //
 // Setup is asynchronous. start() and stop() may be called before it finishes; the loop begins when the
 // device is ready. A failed setup, a shader or validation error, or a lost device calls onFailure once.
@@ -14,6 +16,7 @@ struct Params {
   a: vec4f,   // x: seconds, y: aspect ratio
   c1: vec4f,
   c2: vec4f,
+  c3: vec4f,  // header: the middle stop of the ramp
 }
 @group(0) @binding(0) var<uniform> u: Params;
 
@@ -52,7 +55,7 @@ fn fbm(p: vec2f) -> f32 {
   var v = 0.0;
   var amp = 0.5;
   var q = p;
-  for (var k = 0; k < 4; k = k + 1) {
+  for (var k = 0; k < 2; k = k + 1) {
     v = v + amp * vnoise(q);
     q = q * 2.02 + vec2f(17.0, 9.0);
     amp = amp * 0.5;
@@ -62,13 +65,16 @@ fn fbm(p: vec2f) -> f32 {
 
 @fragment
 fn fs_header(inp: VOut) -> @location(0) vec4f {
-  let t = u.a.x * 0.04;
+  // 0.025 units a second: one drift takes about 40 seconds.
+  let t = u.a.x * 0.025;
   let p = vec2f(inp.uv.x * u.a.y, inp.uv.y) * 1.6;
   let q = vec2f(fbm(p + vec2f(t, 0.0)), fbm(p + vec2f(5.2, 1.3 - t)));
   let n = fbm(p + 2.0 * q + vec2f(0.0, t));
-  let base = mix(u.c1.rgb, u.c2.rgb, smoothstep(0.25, 0.75, n));
-  let lift = smoothstep(0.55, 0.9, q.x) * 0.18;
-  return vec4f(base + vec3f(lift), 1.0);
+  // Two octaves reach about 0.75, so the ramp position is stretched over 0.1 to 0.6 and clamped.
+  let k = clamp(smoothstep(0.1, 0.6, n), 0.0, 1.0);
+  // from -> mid on the lower half, mid -> to on the upper half. No lift, no overshoot: the ramp is the limit.
+  let col = mix(mix(u.c1.rgb, u.c3.rgb, clamp(k * 2.0, 0.0, 1.0)), u.c2.rgb, clamp(k * 2.0 - 1.0, 0.0, 1.0));
+  return vec4f(clamp(col, vec3f(0.0), vec3f(1.0)), 1.0);
 }
 
 @fragment
@@ -93,7 +99,7 @@ function rgb(hex) {
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 }
 
-export function createRenderer({ canvas, kind, color, color2, win, onFailure }) {
+export function createRenderer({ canvas, kind, color, color2, color3, win, onFailure }) {
   let destroyed = false;
   let failed = false;
   let wantRunning = false;
@@ -107,10 +113,11 @@ export function createRenderer({ canvas, kind, color, color2, win, onFailure }) 
   let pipeline = null;
   let buffer = null;
   let bindGroup = null;
-  const params = new Float32Array(12);
+  const params = new Float32Array(16);
   const c1 = rgb(color);
   const c2 = rgb(color2 || color);
-  params.set([0, 1, 0, 0, c1[0], c1[1], c1[2], 1, c2[0], c2[1], c2[2], 1]);
+  const c3 = color3 ? rgb(color3) : c1.map((v, i) => (v + c2[i]) / 2);
+  params.set([0, 1, 0, 0, c1[0], c1[1], c1[2], 1, c2[0], c2[1], c2[2], 1, c3[0], c3[1], c3[2], 1]);
 
   function fail() {
     if (failed || destroyed) return;

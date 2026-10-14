@@ -1,32 +1,89 @@
-/* Header: static gradient in the palette, with room for the effects canvas behind a scrim. */
-.site-header {
+/* Header: the effects canvas sits under a scrim; the static look is the same three-stop ramp the shader is clamped to. */
+#site-header, .site-header {
   position: relative;
   isolation: isolate;
   overflow: hidden;
   color: var(--header-text);
-  background: linear-gradient(135deg, var(--header-from), var(--header-to));
+  background: linear-gradient(110deg, var(--header-from) 0%, var(--header-mid) 50%, var(--header-to) 100%);
+  border-bottom: 1px solid var(--border);
+}
+#site-header canvas[data-fx-canvas] { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; pointer-events: none; }
+.header-scrim { position: absolute; inset: 0; z-index: -1; background: var(--header-scrim); }
+.header-inner {
+  max-width: calc(var(--content-max) + 2 * var(--space-6));
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-6) var(--space-5);
+  display: flex; flex-direction: column; gap: var(--space-5);
+}
+.header-top { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-6); align-items: flex-start; justify-content: space-between; }
+.site-title { font-size: var(--fs-2xl); line-height: var(--lh-tight); font-weight: 680; letter-spacing: -0.015em; }
+.site-sub { margin-top: var(--space-2); color: var(--header-text-muted); max-width: 62ch; font-size: var(--fs-md); text-wrap: pretty; }
+.add-cmd {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: 6px 6px 6px 12px;
+  background: var(--header-chip);
+  border: 1px solid color-mix(in srgb, var(--header-text) 18%, transparent);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+  max-width: 100%;
+}
+.add-cmd-label { color: var(--header-text-muted); white-space: nowrap; }
+.add-cmd code { font-size: var(--fs-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+
+.search { display: flex; flex-direction: column; gap: var(--space-2); }
+.search-field { position: relative; display: flex; align-items: center; max-width: 760px; }
+.search-icon { position: absolute; left: 16px; width: 20px; height: 20px; color: var(--text-muted); pointer-events: none; }
+.search-input {
+  width: 100%; height: 54px;
+  padding: 0 92px 0 48px;
+  font: 400 var(--fs-lg)/1 var(--font-sans);
+  color: var(--text);
+  background: var(--search-bg);
+  border: 1px solid var(--search-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 1px 0 rgb(0 0 0 / 0.03), 0 10px 28px -14px rgb(10 14 30 / 0.35);
+  -webkit-appearance: none; appearance: none;
+}
+.search-input::placeholder { color: var(--text-muted); }
+.search-input:focus-visible {
+  outline: 2px solid var(--focus-on-header);
+  outline-offset: 3px;
+  border-color: var(--text-muted);
+}
+.search-clear {
+  position: absolute; right: 48px;
+  width: 36px; height: 36px; display: grid; place-items: center;
+  border: 0; background: transparent; border-radius: var(--radius-sm); color: var(--text-muted); cursor: pointer;
+}
+.search-clear:hover { background: var(--surface-2); color: var(--text); }
+.search-clear svg { width: 16px; height: 16px; }
+.kbd {
+  position: absolute; right: 14px;
+  min-width: 24px; height: 24px; padding: 0 6px;
+  display: grid; place-items: center;
+  font-size: var(--fs-xs); color: var(--text-muted);
+  border: 1px solid var(--border-strong); border-bottom-width: 2px; border-radius: 5px; background: var(--card-bg);
+}
+.search-hint { font-size: var(--fs-sm); color: var(--header-text-muted); }
+.load-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: color-mix(in srgb, var(--header-text) 12%, transparent); overflow: hidden; }
+.load-progress::after { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 34%; background: var(--header-text); opacity: .7; border-radius: 2px; }
+@keyframes load-slide { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+.load-progress::after { animation: load-slide 1.4s var(--ease) infinite; }
+.search > label { font-size: var(--fs-sm); font-weight: 600; color: var(--header-text); }
+.site-header :focus-visible { outline-color: var(--focus-on-header); }
+@media (max-width: 639px) {
+  .header-inner { padding: var(--space-5) var(--space-4) var(--space-4); gap: var(--space-4); }
+  .site-title { font-size: 22px; }
+  .site-sub { font-size: 14px; }
+  .add-cmd { display: none; }
+  .search-input { height: 50px; font-size: 16px; padding-right: 52px; }
+  .search-clear { right: 8px; width: 44px; height: 44px; }
+  .kbd, .search-hint { display: none; }
 }
 
-/* Scrim keeps text above 4.5:1 over any frame of the animated effect (AC-56). */
-.site-header::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: rgba(0, 0, 0, 0.35);
-}
-
-.site-header canvas[data-fx-canvas] {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -2;
-  pointer-events: none;
-}
-
-.header-inner { max-width: 72rem; margin: 0 auto; padding: 1.5rem 1rem; }
-.tagline { max-width: 40rem; margin-bottom: 1rem; }
-
-.search-form label { display: block; font-weight: 600; margin-bottom: 0.35rem; }
-.site-header :focus-visible { outline-color: #ffffff; }
+/* search icon and clear mark are drawn with CSS: no SVG, no image */
+.search-icon::before { content: ""; position: absolute; left: 1px; top: 1px; width: 11px; height: 11px; border: 2px solid currentColor; border-radius: 50%; }
+.search-icon::after { content: ""; position: absolute; left: 13px; top: 14px; width: 7px; height: 2px; background: currentColor; border-radius: 1px; transform: rotate(45deg); transform-origin: 0 50%; }
+.search-icon { position: absolute; }
+.search-clear { font-size: 22px; line-height: 1; }
+.search-input::-webkit-search-cancel-button, .search-input::-webkit-search-decoration { -webkit-appearance: none; appearance: none; display: none; }

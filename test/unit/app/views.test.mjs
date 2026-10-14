@@ -4,11 +4,11 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parseCurated } from '../../../site-src/search/index.js';
-import { installLines, truncate, createCard, TYPE_LABELS } from '../../../site-src/app/card-view.js';
-import { stripTypeWords, effectiveResult, countMessage, describeInterpretation } from '../../../site-src/app/search-view.js';
+import { installLines, truncate, createCard, countContents, contentsEntries, TYPE_LABELS } from '../../../site-src/app/card-view.js';
+import { stripTypeWords, effectiveResult, countMessage, describeInterpretation, isListMode, countByType } from '../../../site-src/app/search-view.js';
 import { renderTrustCost } from '../../../site-src/app/trust-view.js';
 import { createBuilderView, rowNote, isLocked, GUIDANCE } from '../../../site-src/app/builder-view.js';
-import { TRUST_NOTICE } from '../../../site-src/app/trust-text.js';
+import { TRUST_NOTICE, trustRows, describeFacts } from '../../../site-src/app/trust-text.js';
 import { COST_NOTICE } from '../../../site-src/app/cost-text.js';
 import { fakeDocument } from './fake-dom.mjs';
 
@@ -239,4 +239,124 @@ test('selection from the URL ignores unknown plugin names; rowNote and isLocked'
   assert.equal(rowNote({ auto: false, requiredBy: [] }), '');
   assert.equal(isLocked({ requiredBy: [] }), false);
   assert.equal(isLocked({ requiredBy: ['x'] }), true);
+});
+
+// ---- restyle: list mode, filter counts, contents, owner chip, install-set box, trust flags ----
+
+test('isListMode: free text gives list rows; the empty query and pure type listings stay a grid', () => {
+  assert.equal(isListMode({ terms: ['review'] }), true);
+  assert.equal(isListMode({ terms: [] }), false);
+  const hit = (type) => ({ doc: { type }, score: 1, terms: [] });
+  const typeListing = effectiveResult({ state: 'type-listing', interpretation: { types: ['skill'], terms: [] }, hits: [hit('skill')] }, []);
+  assert.equal(isListMode(typeListing), false);
+  const text = effectiveResult({ state: 'results', interpretation: { types: [], terms: ['lookup'] }, hits: [hit('skill')] }, []);
+  assert.equal(isListMode(text), true);
+});
+
+test('countByType counts the hits of each type', () => {
+  const hit = (type) => ({ doc: { type } });
+  assert.deepEqual(countByType([hit('skill'), hit('skill'), hit('agent')]), { skill: 2, agent: 1 });
+  assert.deepEqual(countByType([]), {});
+});
+
+test('countContents and contentsEntries describe what a plugin ships, in type order, with plurals', () => {
+  const counts = countContents([
+    { type: 'plugin', plugin: 'a' }, { type: 'hook', plugin: 'a' }, { type: 'skill', plugin: 'a' }, { type: 'skill', plugin: 'a' }, { type: 'mcp_server', plugin: 'a' }, { type: 'skill', plugin: 'b' },
+  ]);
+  assert.deepEqual(counts.get('a'), { hook: 1, skill: 2, mcp_server: 1 });
+  assert.deepEqual(contentsEntries(counts.get('a')).map((e) => e.text), ['2 skills', '1 hook', '1 MCP server']);
+  assert.deepEqual(contentsEntries(undefined), []);
+});
+
+const item = (over) => ({ id: 'x', type: 'skill', name: '/beta:review', plugin: 'beta', description: 'd', body: '', tags: [], category: 'review', ...over });
+const ctxFor = (extra = {}) => ({ doc: dom(), win: {}, status: noop, plugins: new Map([['beta', { ...plugin, dependencies: [{ name: 'alpha', range: '~1.0.0' }] }]]), ...extra });
+
+test('an artifact card names itself in mono and links to the plugin that installs it', () => {
+  const ctx = ctxFor();
+  const card = createCard(ctx, { doc: item(), score: 1, terms: [] }, []);
+  assert.equal(card.getAttribute('id'), null);
+  const title = byTag(card, 'h3')[0];
+  assert.match(title.getAttribute('class'), /\bis-mono\b/);
+  const chip = byTag(card, 'a');
+  assert.equal(chip.length, 1);
+  assert.equal(chip[0].getAttribute('href'), '#plugin-beta');
+  assert.equal(chip[0].getAttribute('class'), 'owner');
+  assert.equal(chip[0].textContent, 'Installs with beta 1.0.0');
+});
+
+test('the owner chip hands the click to ctx.reveal and stops the default jump', () => {
+  const revealed = [];
+  const card = createCard(ctxFor({ reveal: (n) => revealed.push(n) }), { doc: item(), score: 1, terms: [] }, []);
+  const chip = byTag(card, 'a')[0];
+  let prevented = false;
+  (chip.handlers.click ?? []).forEach((fn) => fn({ preventDefault() { prevented = true; } }));
+  assert.deepEqual(revealed, ['beta']);
+  assert.equal(prevented, true);
+});
+
+test('a plugin card has an id to link to, a contents line, requirements and an install-set box', () => {
+  const toggles = [];
+  const builderCtx = { state: (n) => ({ checked: n === 'beta', locked: false }), toggle: (n, on) => toggles.push([n, on]) };
+  const contents = countContents([{ type: 'skill', plugin: 'beta' }, { type: 'skill', plugin: 'beta' }, { type: 'agent', plugin: 'beta' }]);
+  const ctx = ctxFor({ contents, builder: builderCtx });
+  const card = createCard(ctx, { doc: item({ type: 'plugin', name: 'beta', description: 'Review tooling' }), score: 1, terms: [] }, []);
+  assert.equal(card.getAttribute('id'), 'plugin-beta');
+  const list = all(card, (e) => e.getAttribute('class') === 'contents');
+  assert.equal(list.length, 1);
+  assert.equal(list[0].textContent, '2 skills1 agent');
+  assert.equal(all(card, (e) => e.getAttribute('class') === 'requires')[0].textContent, 'Requires alpha ~1.0.0');
+  const box = all(card, (e) => e.tagName === 'INPUT')[0];
+  assert.equal(box.getAttribute('data-add-set'), 'beta');
+  assert.equal(box.getAttribute('checked'), '');
+  assert.equal(byTag(card, 'details').length, 1);
+  assert.equal(byTag(card, 'summary').length, 1);
+  box.fire('change');
+  assert.deepEqual(toggles, [['beta', undefined]]);
+});
+
+test('a locked dependency shows its install-set box ticked and disabled', () => {
+  const ctx = ctxFor({ builder: { state: () => ({ checked: true, locked: true }), toggle() {} } });
+  const card = createCard(ctx, { doc: item({ type: 'plugin', name: 'beta' }), score: 1, terms: [] }, []);
+  const box = all(card, (e) => e.tagName === 'INPUT')[0];
+  assert.equal(box.getAttribute('checked'), '');
+  assert.equal(box.getAttribute('disabled'), '');
+});
+
+test('trust rows carry neutral fact flags and no verdict words', () => {
+  const rows = trustRows(plugin.trust);
+  assert.deepEqual(rows.map((r) => r.flags), [['broad matcher'], ['non-loopback'], ['scripts']]);
+  const quiet = trustRows({ hooks: [{ event: 'Stop', matcher: 'x', broad: false, source_path: 'h.json' }], mcp_servers: [], has_scripts: false, network_urls: [] });
+  assert.deepEqual(quiet.map((r) => r.flags), [[]]);
+  const words = rows.flatMap((r) => r.flags).join(' ');
+  assert.ok(!/safe|danger|risk|unsafe|trusted|score|verified/i.test(words));
+});
+
+test('the closed line of the disclosure states the declarations and the always-loaded cost', () => {
+  assert.equal(describeFacts(plugin.trust, plugin.cost), 'Declares 1 hook (1 broad), 1 MCP server (1 non-loopback), a scripts/ folder · about 120 tokens always loaded');
+  assert.equal(describeFacts({ hooks: [], mcp_servers: [], has_scripts: false, network_urls: [] }, { always_loaded_tokens: 0, on_invocation_tokens: 0 }), 'Declares nothing · no always-loaded content');
+});
+
+test('the trust disclosure shows flags as plain text and still has no links', () => {
+  const el = renderTrustCost(dom(), plugin);
+  const flags = all(el, (e) => e.getAttribute('class') === 'flag').map((e) => e.textContent);
+  assert.deepEqual(flags, ['broad matcher', 'non-loopback', 'scripts']);
+  assert.equal(byTag(el, 'a').length, 0);
+  assert.equal(all(el, (e) => e.getAttribute('class') === 'trust-body').length, 1);
+});
+
+test('the builder reports the resolved set, answers state() and toggles from outside', () => {
+  const doc = dom();
+  const host = doc.createElement('aside');
+  const updates = [];
+  const view = createBuilderView({ doc, win: {}, host, plugins, selected: [], status: noop, onUpdate: (entries) => updates.push(entries.map((e) => e.name)) });
+  assert.deepEqual(updates, [[]]);
+  view.toggle('suite', true);
+  assert.deepEqual(updates.at(-1), ['suite', 'alpha', 'gamma', 'delta']);
+  assert.deepEqual(view.state('gamma'), { checked: true, locked: true });
+  assert.deepEqual(view.state('suite'), { checked: true, locked: false });
+  assert.deepEqual(view.state('nope'), { checked: false, locked: false });
+  view.toggle('nope', true);
+  assert.deepEqual(view.selected(), ['suite']);
+  view.toggle('suite', false);
+  assert.deepEqual(view.state('alpha'), { checked: false, locked: false });
 });

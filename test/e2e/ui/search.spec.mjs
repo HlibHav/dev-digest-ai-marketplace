@@ -79,14 +79,15 @@ test('the type checkboxes filter the full catalog', async ({ page }) => {
   await expect(cards(page, 'agent')).toHaveCount(agents);
 });
 
-test('AC-20: a card shows type, name, plugin, description, highlight and a copy button', async ({ page }) => {
+test('AC-20: a card shows type, name, owner plugin chip, description, highlight and a copy button', async ({ page }) => {
   await open(page);
   await search(page, 'review');
   const card = cards(page, 'skill').filter({ hasText: '/beta:review' });
   await expect(card).toBeVisible();
   await expect(card.locator('.badge')).toHaveText('skill');
   await expect(card.locator('.card-title')).toContainText('/beta:review');
-  await expect(card).toContainText('Plugin: beta');
+  await expect(card.locator('a.owner')).toHaveText(/^Installs with\s+beta\s+\d+\.\d+\.\d+$/);
+  await expect(card.locator('a.owner')).toHaveAttribute('href', '#plugin-beta');
   await expect(card.locator('.card-desc')).toContainText('Architecture review of a diff against layer boundaries');
   expect(await card.locator('mark').count()).toBeGreaterThan(0);
   await expect(card.getByRole('button', { name: /^Copy install/ })).toBeVisible();
