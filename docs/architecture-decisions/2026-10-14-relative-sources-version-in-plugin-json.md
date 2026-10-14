@@ -40,5 +40,5 @@ plugin directory lacks a `version`; release PR review checks the bump.
 
 ## More Information
 
-- Research: `docs/research/2026-10-14_marketplace-repo-structure.md` (sections 1, 4, 5)
+- Research: `docs/temp/2026-10-14_marketplace-repo-structure.md` (sections 1, 4, 5)
 - https://code.claude.com/docs/en/plugins/loading

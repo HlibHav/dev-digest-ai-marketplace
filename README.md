@@ -58,7 +58,7 @@ This takes effect after each teammate accepts the workspace trust dialog. To upd
 │   ├── SITE-SPEC.md                  # GitHub Pages catalog (skeleton)
 │   ├── COST-BASELINE.md              # token cost baseline (skeleton)
 │   ├── architecture-decisions/       # ADRs
-│   └── research/                     # where the rules come from
+│   └── temp/                         # working notes, deleted after the plugins are built
 ├── scripts/                          # check.sh, check-repo.mjs, build-index.mjs
 ├── .github/workflows/                # validate, pages
 ├── CODEOWNERS
