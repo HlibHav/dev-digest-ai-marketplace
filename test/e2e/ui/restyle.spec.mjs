@@ -145,7 +145,15 @@ test.describe('wide layout (1280)', () => {
 
   test('a card glows on keyboard focus: the effect turns on and the card shows a rim', async ({ page }) => {
     await stubWebGpu(page, true);
+    // The effects bundle is a dynamic import that attaches the focus listener after the page is
+    // usable. Delay it so the race always happens, then wait for the header effect: the controller
+    // turns it on in the same task that attaches the card listeners.
+    await page.route('**/fx-entry*.js', async (route) => {
+      await new Promise((r) => setTimeout(r, 400));
+      return route.continue();
+    });
     await open(page);
+    await expect(page.locator('#site-header[data-fx-header]')).toHaveAttribute('data-fx-state', 'on');
     const card = page.locator('#app [data-card][data-type="plugin"]').first();
     await card.locator('button[data-copy]').focus();
     await expect(card).toHaveAttribute('data-fx-state', 'on');
