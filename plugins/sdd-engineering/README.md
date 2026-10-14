@@ -41,6 +41,8 @@ flowchart LR
 `spec-creator` and `implementation-planner` are run by hand. `run-plan` starts from a saved plan
 and never writes a spec or a plan; when it finds one wrong, it stops and says which agent to run.
 
+Before running `sdd-engineering:spec-creator`, load `/engineering-paved-path:sdd-cascade` in the main session and paste its text into the brief, or name the tier yourself (Direct, Lightweight SDD, Full SDD, Discovery-First); without either it returns one blocking question.
+
 ## Dependencies
 
 | Plugin | Range | Provides | Without it |
@@ -70,7 +72,10 @@ tool call in a session, then acts only when the calling agent is one of:
 - `spec-creator`: writes only Markdown under a `specs/` directory; no Bash.
 - `implementation-planner`: no writes, no Bash.
 - `plan-verifier`: no writes; Bash limited to read-only git and the commands in `checkCommands`.
-  Chaining and expansion characters (`;`, `&&`, `||`, `|`, backticks, `$(`, `>`, `<`) are denied.
+
+- The guard acts only when the hook input's `agent_type` matches a guarded agent. For those agents, malformed tool input is denied. Input with no `agent_type` (the main session, other agents) passes silently.
+- Denied shell characters for read-only agents: `;`, `&`, `|`, `<` and `>` outside quotes, and backticks, `$(`, `${` and newlines anywhere.
+- Allowed git: read-only subcommands (`diff`, `log`, `show`, `status`, `blame`, `merge-base`, `rev-parse`, `ls-files`, `grep`, `cat-file`, branch listing, `describe`, `shortlog`). Denied: `git -C`, `git -c` (options before the subcommand), `--output`, `-O`, `--no-index`, `--ext-diff`, `--textconv`.
 
 `implementer` and the main session are not restricted and exit silently. A denial is a PreToolUse
 `deny` decision with a reason. The hook reads the tool input and one local config file, writes

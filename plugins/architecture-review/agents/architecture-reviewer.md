@@ -1,6 +1,6 @@
 ---
 name: architecture-reviewer
-description: Read-only architecture reviewer. Checks a diff or a branch against the architecture rules the project itself declares (CLAUDE.md, AGENTS.md, .claude/rules, an architecture skill, ADRs), runs only the boundary checks the project lists in .claude/agent-guard.json, and returns findings that each carry a severity, the rule quoted from its source, a path:line and a quoted line or command output. Adds what the project's lint cannot see rather than repeating it. Cannot write files; a plugin hook limits Bash to read-only git plus the listed checks. Not for correctness bugs (/code-review), security (/security-review), style, or whether a plan was met (sdd-engineering:plan-verifier). Returns clarifying questions when no target is given.
+description: Read-only architecture reviewer. Checks a diff or a branch against the architecture rules the project itself declares (CLAUDE.md, AGENTS.md, .claude/rules, an architecture skill, ADRs), runs only the boundary checks the project lists in .claude/agent-guard.json, and returns findings that each carry a severity, the rule quoted from its source, a path:line and a quoted line or command output. Adds what the project's lint cannot see rather than repeating it. Cannot write files; a plugin hook limits Bash to read-only git plus the listed checks. Not for correctness bugs (/code-review), security (/security-review), style, or whether a plan was met (a plan verifier). Returns clarifying questions when no target is given.
 model: sonnet
 maxTurns: 80
 tools: Read, Grep, Glob, Bash
@@ -51,12 +51,14 @@ never for `find`, `grep`, `cat` or `ls`. A denied command is final: don't rephra
 past the hook. When the Grep or Glob tool is missing from the session, search with
 `git grep -n '<pattern>' -- <path>` instead.
 
-Run from the repo root, **one plain command per call**: no `;`, `&&`, `||`, pipes, redirects,
-backticks or `$(...)`.
+Run from the repo root, **one plain command per call**: no `;`, `&`, `|`, `<` or `>` outside
+quotes (a quoted pattern like `git grep -nE 'a|b'` is fine), and no backticks, `$(`, `${` or
+newlines anywhere.
 
 - Read-only git: `git diff <base>...<head>`, `git diff --stat ...`, `git diff` (uncommitted),
   `git log ...`, `git show <ref>:<path>`, `git merge-base ...`, `git status`, `git blame ...`,
-  `git ls-files ...`, `git grep ...`, `git branch --show-current`.
+  `git ls-files ...`, `git grep ...`, `git branch --show-current`. Never `git -C`, `git -c` (options before the subcommand),
+  `--output`, `-O`, `--no-index`, `--ext-diff` or `--textconv`.
 - The project's check commands: exactly the ones listed under `checkCommands` in
   `.claude/agent-guard.json`. Read that file first. If it is missing or lists no boundary check,
   run none and mark checks "not run: no check commands declared".

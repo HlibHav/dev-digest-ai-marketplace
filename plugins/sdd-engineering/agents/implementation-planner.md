@@ -325,17 +325,17 @@ Save as: docs/plans/YYYY-MM-DD-<feature>.md
 ## Checks for reviewers          (plan-verifier first, then the rest in parallel)
 - sdd-engineering:plan-verifier: <AC-1…AC-n; integration suite — whichever apply>
 - architecture-review:architecture-reviewer: <the project's boundary checks and rules — whichever apply>
-- security: </security-review, or the project's security-reviewer agent — always, when the diff has code or hooks>
-- main session: </code-review, end-to-end runs, project self-review skill — whichever apply>
+- security: <"/security-review" or the project's security-reviewer agent — always, when the diff has code or hooks>
+- main session: <"/code-review", end-to-end runs, project self-review skill — whichever apply>
 
 ## Commands for the read-only agents
 Each must be listed in `.claude/agent-guard.json` → `checkCommands`, or the guard hook denies it
 and the check is reported unverifiable. One plain command per line, no pipes, `&&`, `;` or
 redirects.
-- `<command>` — run by <plan-verifier | architecture-reviewer>
+- `<command>` — run by <plan-verifier | architecture-review:architecture-reviewer>
 
 ## Out of scope
-- Writing or changing the spec (spec-creator), architecture review (architecture-reviewer),
+- Writing or changing the spec (spec-creator), architecture review (architecture-review:architecture-reviewer),
   acceptance verification (plan-verifier), security review and end-to-end runs (main session
   and security reviewer)
 - <anything else deliberately left out>

@@ -32,16 +32,19 @@ from pathlib import Path
 WRITE_TOOLS = {"Write", "Edit", "MultiEdit", "NotebookEdit"}
 PROFILES = {"readonly", "specs", "planner"}
 
-# Characters that chain, pipe, redirect or expand in a shell. A guarded agent runs one plain
-# command per call.
-SHELL_META = re.compile(r"[;&|`<>]|\$\(|\$\{|\n")
+# Expansion works even inside double quotes, so these are denied anywhere in the command.
+EXPANSION = re.compile(r"`|\$\(|\$\{|\n")
+# Chaining, pipes and redirects only act outside quotes; a quoted `a|b` pattern is fine.
+OPERATOR_CHARS = ";&|<>"
 
 GIT_READ = {
     "diff", "log", "show", "status", "blame", "merge-base", "rev-parse", "ls-files",
     "grep", "cat-file", "branch", "describe", "shortlog",
 }
-# -O / --open-files-in-pager make `git grep` run a program.
-GIT_WRITE_FLAGS = {"--output", "-o", "-O", "--open-files-in-pager", "--delete", "-d", "-D", "-m", "-M", "-c", "-C", "--set-upstream-to"}
+# Flags that write a file, run a program, or read outside the repository.
+# -O / --open-files-in-pager make `git grep` run a program; --ext-diff / --textconv run
+# configured drivers; --no-index diffs arbitrary paths.
+GIT_DENIED_FLAGS = {"--output", "--open-files-in-pager", "--ext-diff", "--textconv", "--no-index"}
 
 
 def emit_deny(reason: str) -> None:
@@ -99,25 +102,31 @@ def check_commands(root: Path) -> list[list[str]]:
 
 def git_read_only(tokens: list[str]) -> bool:
     args = tokens[1:]
-    # Skip `-C <dir>` style global options.
-    while args and args[0] in ("-C", "--no-pager"):
-        args = args[2:] if args[0] == "-C" else args[1:]
+    # Only --no-pager is accepted before the subcommand; -C and -c change where git reads or
+    # how it is configured.
+    while args and args[0] == "--no-pager":
+        args = args[1:]
     if not args or args[0] not in GIT_READ:
         return False
     sub, rest = args[0], args[1:]
     if sub == "branch":
         # Listing only: a positional argument would create a branch.
         return all(a in ("--list", "-a", "-r", "--show-current", "-v", "-vv") for a in rest)
-    return not any(a.split("=", 1)[0] in GIT_WRITE_FLAGS or a.startswith("-O") for a in rest)
+    return not any(a.split("=", 1)[0] in GIT_DENIED_FLAGS or a.startswith("-O") for a in rest)
 
 
 def bash_allowed(command: str, root: Path) -> tuple[bool, str]:
-    if SHELL_META.search(command):
-        return False, "chained, piped, redirected or substituted commands are not allowed; run one plain command"
+    if EXPANSION.search(command):
+        return False, "command substitution, variable expansion and multi-line commands are not allowed"
     try:
+        lexer = shlex.shlex(command, posix=True, punctuation_chars=OPERATOR_CHARS)
+        lexer.whitespace_split = True
+        lexed = list(lexer)
         tokens = shlex.split(command)
     except ValueError:
         return False, "command could not be parsed"
+    if any(t and set(t) <= set(OPERATOR_CHARS) for t in lexed):
+        return False, "chained, piped or redirected commands are not allowed; run one plain command"
     if not tokens:
         return False, "empty command"
     if tokens[0] == "git":

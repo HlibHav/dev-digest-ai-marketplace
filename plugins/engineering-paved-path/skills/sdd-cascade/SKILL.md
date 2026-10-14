@@ -67,3 +67,5 @@ Each spec ends with a `## Changelog` (date, what changed, why), so its history i
 | A refactor with no change in behaviour | Nothing in the spec. It describes behaviour and limits, not implementation. |
 
 The rule: the spec describes what and the behaviour. When the what changes, update it. When only the how changes, leave it.
+
+When a spec-writing subagent needs the tier rules, paste this skill's text into its brief: subagents without the Skill tool cannot load it.

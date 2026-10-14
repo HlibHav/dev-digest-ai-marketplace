@@ -47,10 +47,20 @@ test('readonly agent cannot write, under its plugin-scoped or bare name', () => 
 
 test('readonly agent may run read-only git only', () => withProject((dir) => {
   const a = { agent_type: 'sdd-engineering:plan-verifier', tool_name: 'Bash' };
-  for (const command of ['git diff main...HEAD', 'git log --oneline -5', 'git -C sub status --porcelain', 'git branch --show-current', 'git merge-base HEAD origin/main']) {
+  for (const command of ['git diff main...HEAD', 'git log --oneline -5', 'git branch --show-current', 'git merge-base HEAD origin/main']) {
     assert.equal(run(dir, { ...a, tool_input: { command } }), null, command);
   }
   for (const command of ['git commit -m x', 'git push', 'git branch evil', 'git diff --output=/tmp/x', 'git checkout .', 'git grep -Oevil foo', 'git -c core.pager=evil log', 'rm -rf src']) {
+    assert.ok(denied(run(dir, { ...a, tool_input: { command } })), command);
+  }
+}));
+
+test('readonly agent: quoted metacharacters and diff/log options are fine; outside-repo reads are not', () => withProject((dir) => {
+  const a = { agent_type: 'plan-verifier', tool_name: 'Bash' };
+  for (const command of [`git grep -nE 'foo|bar'`, 'git diff -M main...HEAD', 'git log -c -m --stat', 'git grep -c foo', `git log --grep='a>b'`]) {
+    assert.equal(run(dir, { ...a, tool_input: { command } }), null, command);
+  }
+  for (const command of ['git diff --no-index /etc/passwd a.txt', 'git diff --ext-diff', 'git log -p --textconv', 'git -C /etc log', `git grep "$(id)"`, 'git log "${HOME}"']) {
     assert.ok(denied(run(dir, { ...a, tool_input: { command } })), command);
   }
 }));

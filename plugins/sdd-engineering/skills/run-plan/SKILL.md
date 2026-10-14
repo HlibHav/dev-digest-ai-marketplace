@@ -1,6 +1,6 @@
 ---
 name: run-plan
-description: Runs the implementation half of a spec-driven chain from an approved Implementation Plan. It starts implementer lanes level by level with a package gate, then plan-verifier, then architecture-reviewer, a conditional security review and /code-review in parallel, then a triaged fix loop of up to three rounds, then insights and close. spec-creator and implementation-planner are run by hand beforehand; this skill never writes a spec or a plan. Invoked only as `/sdd-engineering:run-plan <plan-path> [--prompt "…"] [--design <path>…] [--mode multi|single]`.
+description: Runs the implementation half of a spec-driven chain from an approved Implementation Plan. It starts implementer lanes level by level with a package gate, then plan-verifier, then architecture-review:architecture-reviewer, a conditional security review and /code-review in parallel, then a triaged fix loop of up to three rounds, then insights and close. spec-creator and implementation-planner are run by hand beforehand; this skill never writes a spec or a plan. Invoked only as `/sdd-engineering:run-plan <plan-path> [--prompt "…"] [--design <path>…] [--mode multi|single]`.
 argument-hint: "<plan-path> [--prompt \"…\"] [--design <path>…] [--mode multi|single]"
 disable-model-invocation: true
 ---
@@ -46,7 +46,7 @@ Stop and tell the user what to run instead when:
 - `--mode` differs from the plan's shape: the planner re-plans in that mode.
 
 **Check the read-only agents can run the plan's checks.** `plan-verifier` and
-`architecture-reviewer` are read-only: their guard hook allows only read-only git and the
+`architecture-review:architecture-reviewer` are read-only: their guard hook allows only read-only git and the
 commands listed under `checkCommands` in the project's `.claude/agent-guard.json`. Read that
 file and compare it with every check command the plan assigns to those two agents. For each one
 that is not listed, tell the user which commands to add to `checkCommands` and wait; without

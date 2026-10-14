@@ -46,4 +46,4 @@ One short block: what changed, each command with its result line, anything not r
 
 ## Note for read-only subagents
 
-Read-only profiles of the `sdd-engineering` agents run only the commands listed in `.claude/agent-guard.json` under `checkCommands`. List the project's check commands there so a verifier can run them.
+Read-only subagents guarded by agent-guard run only commands listed in `.claude/agent-guard.json` under `checkCommands`. List the project's check commands there so a verifier can run them.

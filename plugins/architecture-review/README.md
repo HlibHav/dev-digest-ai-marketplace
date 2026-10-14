@@ -31,8 +31,11 @@ None. When a caller passes a review bundle directory (made by `/engineering-pave
 ## Hooks
 
 - Event and matcher: `PreToolUse`, matcher `Write|Edit|MultiEdit|NotebookEdit|Bash`. It fires for every tool call of those types in any session where the plugin is enabled, including the main session and other agents.
-- It acts only when the hook input's `agent_type` is `architecture-reviewer` (or `<plugin>:architecture-reviewer`). For anyone else it exits 0 with no output.
-- For the reviewer it denies all Write, Edit, MultiEdit and NotebookEdit calls. It allows Bash only for one plain read-only git command (`diff`, `log`, `show`, `status`, `blame`, `merge-base`, `rev-parse`, `ls-files`, `grep`, `cat-file`, `describe`, `shortlog`, listing-only `branch`) or a command that starts with an entry of `checkCommands`. Chaining and expansion (`;`, `&&`, `||`, `|`, backticks, `$(`, `${`, `>`, `<`, newlines) is denied. Malformed hook input for the reviewer is denied.
+- It guards `architecture-reviewer` (or `<plugin>:architecture-reviewer`).
+- The guard acts only when the hook input's `agent_type` matches a guarded agent. For those agents, malformed tool input is denied. Input with no `agent_type` (the main session, other agents) passes silently.
+- Denied shell characters for read-only agents: `;`, `&`, `|`, `<` and `>` outside quotes, and backticks, `$(`, `${` and newlines anywhere.
+- Allowed git: read-only subcommands (`diff`, `log`, `show`, `status`, `blame`, `merge-base`, `rev-parse`, `ls-files`, `grep`, `cat-file`, branch listing, `describe`, `shortlog`). Denied: `git -C`, `git -c` (options before the subcommand), `--output`, `-O`, `--no-index`, `--ext-diff`, `--textconv`.
+- For the reviewer it denies all Write, Edit, MultiEdit and NotebookEdit calls. Bash is allowed only as one plain read-only git command or a command that starts with an entry of `checkCommands`.
 - It never approves anything on its own: it only denies. It makes no network calls and writes nothing. It needs `python3` on PATH.
 
 ## External tools

@@ -47,13 +47,16 @@ times; don't.
 ## Commands you may run
 
 Search with the Grep and Glob tools and read with Read; Bash is only for the commands below,
-never for `find`, `grep`, `cat` or `ls`. Run **one plain command per call**: the hook denies
-pipes, `&&`, `||`, `;`, redirects (`>`, `<`), backticks and `$(...)`/`${...}` expansion. A
+never for `find`, `grep`, `cat` or `ls`. When the Grep or Glob tool is missing from the session,
+use `git grep -n '<pattern>' -- <path>` or `git ls-files` instead. Run **one plain command per call**: the hook denies
+`;`, `&`, `|`, `<` and `>` outside quotes (a quoted pattern like `git grep -nE 'a|b'` is fine),
+and backticks, `$(`, `${` and newlines anywhere. A
 denied command is final: don't rephrase it to get past the hook.
 
 - Read-only git: `git diff <base>...<head>`, `git diff --stat …`, `git diff` (uncommitted),
   `git log …`, `git show <ref>:<path>`, `git status --porcelain`, `git ls-files …`,
-  `git merge-base …`, `git grep …` (no `-O` or `--open-files-in-pager`).
+  `git merge-base …`, `git grep …`. Never `git -C`, `git -c` (options before the subcommand), `--output`, `-O`, `--no-index`,
+  `--ext-diff` or `--textconv`.
 - The project's check commands: only those listed in the project's `.claude/agent-guard.json`
   under `checkCommands`, matched as exact command prefixes. The plan's *Commands for the
   read-only agents* section lists the ones you are expected to run. Typechecks and test runs
@@ -143,7 +146,7 @@ Reason first, then give one discrete verdict per item:
 - `partial`: some of it is there. Say exactly which part is missing.
 - `not met`: missing or contradicted. Cite what you looked at.
 - `unverifiable`: you can't check it here. Name who can ("end-to-end run: main session",
-  "boundary check: architecture-reviewer") or what blocked it ("denied by guard: <quoted
+  "boundary check: architecture-review:architecture-reviewer") or what blocked it ("denied by guard: <quoted
   reason>", "service not running: <error line>", "command not in the plan or the project's
   documentation").
 
