@@ -26,8 +26,14 @@
  *   CLAUDE_CODE_SUBAGENT_MODEL=<model> + _FORCE=1  subagents whose frontmatter says `model: opus`
  *                                 run on the model under test, which keeps the cost cap real
  *                                 (without _FORCE the frontmatter model wins; seen in modelCostsUsd).
- *   --permission-mode bypassPermissions  headless runs cannot answer prompts; this is safe only
- *                                 because the cwd is a disposable temp repo.
+ *   --permission-mode acceptEdits + --allowedTools allowedTools()   headless runs cannot answer
+ *                                 prompts, so anything outside the allowlist is denied, not asked:
+ *                                 edits inside the temp repo, file reads and search, Agent/Skill,
+ *                                 `npm test`/`node --test`, run-plan's git and review-bundle.sh.
+ *                                 No web tools, no other shell. Denials land in each run record.
+ *   env = evalEnv()               an allowlist of the parent environment: PATH, HOME, locale, temp,
+ *                                 proxy and CA variables, and the Claude auth variables. Every other
+ *                                 inherited variable (GITHUB_TOKEN, cloud keys, ...) is dropped.
  * Not isolated: the login (OAuth keychain or ANTHROPIC_API_KEY) and the built-in bundled
  * skills of the CLI version. `--probe` reports both honestly.
  *
@@ -40,7 +46,7 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
-  cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync,
+  cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, rmSync, writeFileSync,
 } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
@@ -166,16 +172,23 @@ const wildcardMatch = (pattern, value) => pattern === '*' || (pattern.endsWith('
 
 const SKIP_DIRS = new Set(['.git', 'node_modules']);
 
-/** relative path -> sha1 for every file under dir (skips .git and node_modules). */
+/**
+ * relative path -> sha1 for every file under dir (skips .git and node_modules). A symlink is
+ * hashed by its target path and never followed, so a run cannot make the snapshot read outside
+ * the temp repo; sockets, FIFOs and devices are skipped (reading a FIFO would block).
+ */
 export function snapshotFiles(dir) {
   const files = {};
+  const hash = (data) => createHash('sha1').update(data).digest('hex');
   const walk = (d) => {
     for (const name of readdirSync(d)) {
       if (SKIP_DIRS.has(name)) continue;
       const p = join(d, name);
-      const st = statSync(p);
-      if (st.isDirectory()) walk(p);
-      else files[relative(dir, p).split(sep).join('/')] = createHash('sha1').update(readFileSync(p)).digest('hex');
+      const rel = relative(dir, p).split(sep).join('/');
+      const st = lstatSync(p);
+      if (st.isSymbolicLink()) files[rel] = hash(`symlink:${readlinkSync(p)}`);
+      else if (st.isDirectory()) walk(p);
+      else if (st.isFile()) files[rel] = hash(readFileSync(p));
     }
   };
   if (existsSync(dir)) walk(dir);
@@ -366,12 +379,40 @@ export function prepareProject(fixtureDir, setupFiles = {}) {
   return dir;
 }
 
+/**
+ * What a headless run may do without a prompt; everything else is denied. Bash is limited to the
+ * fixture's test command, the git that run-plan needs (read, branch, add, commit) and the
+ * review-bundle script of the loaded paved-path plugin.
+ */
+export function allowedTools(pluginRoot = REPO_ROOT) {
+  const bundle = join(pluginRoot, 'plugins/engineering-paved-path/skills/review-bundle/scripts/review-bundle.sh');
+  return [
+    'Read', 'Glob', 'Grep', 'Write', 'Edit', 'MultiEdit', 'TodoWrite', 'Agent', 'Task', 'Skill',
+    'Bash(npm test:*)', 'Bash(node --test:*)', `Bash(bash ${bundle}:*)`,
+    ...['diff', 'log', 'show', 'status', 'rev-parse', 'merge-base', 'ls-files', 'blame', 'grep',
+      'checkout -b', 'switch -c', 'branch', 'add', 'commit'].map((c) => `Bash(git ${c}:*)`),
+  ];
+}
+
+const ENV_KEEP = new Set([
+  'PATH', 'HOME', 'USER', 'LOGNAME', 'SHELL', 'TMPDIR', 'TMP', 'TEMP', 'LANG', 'TERM',
+  'ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'ANTHROPIC_BASE_URL', 'CLAUDE_CODE_OAUTH_TOKEN', 'CLAUDE_CONFIG_DIR',
+  'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY', 'http_proxy', 'https_proxy', 'no_proxy', 'NODE_EXTRA_CA_CERTS',
+]);
+
+/** The child environment: an allowlist of `parent` plus the runner's own isolation variables. */
+export function evalEnv(parent, model) {
+  const env = {};
+  for (const [k, v] of Object.entries(parent)) if (ENV_KEEP.has(k) || k.startsWith('LC_')) env[k] = v;
+  return { ...env, CLAUDE_CODE_DISABLE_AUTO_MEMORY: '1', CLAUDE_CODE_SUBAGENT_MODEL: model, CLAUDE_CODE_SUBAGENT_MODEL_FORCE: '1' };
+}
+
 export function buildClaudeArgs({ prompt, model, maxTurns, maxBudgetUsd, pluginRoot = REPO_ROOT }) {
   const args = [
     '-p', prompt, '--output-format', 'stream-json', '--verbose', '--model', model,
     '--max-turns', String(maxTurns), '--setting-sources', 'project',
     '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}',
-    '--permission-mode', 'bypassPermissions',
+    '--permission-mode', 'acceptEdits', '--allowedTools', allowedTools(pluginRoot).join(','),
   ];
   if (maxBudgetUsd) args.push('--max-budget-usd', String(maxBudgetUsd));
   for (const p of PLUGINS) args.push('--plugin-dir', join(pluginRoot, 'plugins', p));
@@ -383,7 +424,7 @@ function runClaude(args, cwd, model, timeoutMs = 15 * 60 * 1000) {
     const started = Date.now();
     const child = spawn('claude', args, {
       cwd,
-      env: { ...process.env, CLAUDE_CODE_DISABLE_AUTO_MEMORY: '1', CLAUDE_CODE_SUBAGENT_MODEL: model, CLAUDE_CODE_SUBAGENT_MODEL_FORCE: '1' },
+      env: evalEnv(process.env, model),
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     let stdout = '';
@@ -404,6 +445,14 @@ function runClaude(args, cwd, model, timeoutMs = 15 * 60 * 1000) {
 
 async function runCase(c, defaults, fixtureDir, opts, runIndex) {
   const dir = prepareProject(fixtureDir, c.setup?.files ?? {});
+  try {
+    return await runCaseIn(dir, c, defaults, opts, runIndex);
+  } finally {
+    if (!opts.keep) rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+async function runCaseIn(dir, c, defaults, opts, runIndex) {
   const before = snapshotFiles(dir);
   const args = buildClaudeArgs({
     prompt: c.prompt, model: opts.model, maxTurns: c.maxTurns ?? defaults.maxTurns, maxBudgetUsd: c.maxBudgetUsd ?? defaults.maxBudgetUsd,
@@ -427,8 +476,8 @@ async function runCase(c, defaults, fixtureDir, opts, runIndex) {
     id: c.id, kind: c.kind, run: runIndex, passed: assertions.every((a) => a.ok), assertions, metrics,
     wallMs: res.wallMs, exitCode: res.code, dispatched: parsed.dispatched, skills: parsed.skills,
     finalText: parsed.finalText.slice(0, 600), projectDir: opts.keep ? dir : undefined,
+    permissionDenials: (parsed.result?.permission_denials ?? []).map((d) => ({ tool: d.tool_name, input: d.tool_input })),
   };
-  if (!opts.keep) rmSync(dir, { recursive: true, force: true });
   return record;
 }
 
@@ -471,8 +520,12 @@ async function probe(opts) {
   const dir = prepareProject(join(EVALS_DIR, 'fixtures/tiny-app'));
   const prompt = "Answer with one line starting with YES or NO. Does your context contain any of these exact words: 'Berlin', 'Ukrainian', 'anti-ai-writing-style', 'Senior PM'? Do not use any tool.";
   const args = buildClaudeArgs({ prompt, model: opts.model, maxTurns: 2, maxBudgetUsd: 0.2 });
-  const res = await runClaude(args, dir, opts.model);
-  rmSync(dir, { recursive: true, force: true });
+  let res;
+  try {
+    res = await runClaude(args, dir, opts.model);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
   const parsed = parseStream(res.stdout);
   const checks = probeVerdict(parsed, userLevelNames(), { memoryAnswer: parsed.finalText });
   const lines = checks.map((c) => `${c.ok ? 'PASS' : 'FAIL'}  ${c.name}${c.ok ? '' : `  (${c.detail})`}`);
