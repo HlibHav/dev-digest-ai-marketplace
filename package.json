@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "node scripts/build-index.mjs",
+    "dev": "node scripts/dev-server.mjs",
     "test": "node --test \"test/unit/**/*.test.mjs\" \"test/integration/**/*.test.mjs\"",
     "test:unit": "node --test \"test/unit/**/*.test.mjs\"",
     "test:integration": "node --test \"test/integration/**/*.test.mjs\"",

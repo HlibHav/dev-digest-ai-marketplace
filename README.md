@@ -62,7 +62,7 @@ This takes effect after each teammate accepts the workspace trust dialog. To upd
 ├── site-src/                         # browser code and styles bundled into the site
 ├── data/                             # curated search data (dictionary, stop words)
 ├── test/                             # unit, integration and e2e tests
-├── scripts/                          # check.sh, check-repo.mjs, build-index.mjs, lib/
+├── scripts/                          # check.sh, check-repo.mjs, build-index.mjs, dev-server.mjs, lib/
 ├── .github/workflows/                # validate, pages
 ├── CODEOWNERS
 ├── CONTRIBUTING.md

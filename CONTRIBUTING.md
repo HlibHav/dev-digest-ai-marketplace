@@ -97,6 +97,17 @@ It runs `node scripts/check-repo.mjs` (repo rules), `claude plugin validate . --
 
 Run the tests on their own with `npm test`. The browser tests need Chromium once (`npx playwright install chromium`), then run with `npm run test:e2e`; CI runs them as the separate `e2e` job.
 
+## Local development
+
+To see the catalog site while you edit, install the locked dependencies once and start the dev server:
+
+```
+npm ci --ignore-scripts
+npm run dev
+```
+
+Open http://127.0.0.1:3400. Edits under `plugins/`, `.claude-plugin/` and `site-src/` rebuild the site and reload the page. The server shows only the plugins in the catalog, never test fixtures, and builds with the same script as production. Set `PORT=…` to change the port. A failed build prints its error and the server keeps the last good site.
+
 ## Add a new plugin
 
 1. Create `plugins/<name>/` with the layout above. Pick a name that is not reserved (`claude-`, `anthropic-`, `cc-plugin-`, `claudeai-` prefixes are rejected) and that will not need to change.
