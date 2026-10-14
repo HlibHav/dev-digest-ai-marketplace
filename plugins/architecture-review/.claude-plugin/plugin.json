@@ -1,6 +1,6 @@
 {
   "name": "architecture-review",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Independent read-only architecture reviewer that checks a diff against layer boundaries.",
   "author": { "name": "HlibHav", "url": "https://github.com/HlibHav" },
   "homepage": "https://github.com/HlibHav/dev-digest-ai-marketplace/tree/main/plugins/architecture-review",

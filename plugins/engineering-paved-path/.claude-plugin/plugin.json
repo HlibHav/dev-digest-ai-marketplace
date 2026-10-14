@@ -1,6 +1,6 @@
 {
   "name": "engineering-paved-path",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Shared engineering practices: done gate, spec-tier guide, module insights, review bundle and the agent guard script.",
   "author": { "name": "HlibHav", "url": "https://github.com/HlibHav" },
   "homepage": "https://github.com/HlibHav/dev-digest-ai-marketplace/tree/main/plugins/engineering-paved-path",

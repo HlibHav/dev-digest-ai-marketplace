@@ -122,7 +122,7 @@ export function buildIndex({ root, indexBudgetGzipBytes = DEFAULT_INDEX_BUDGET_G
       dependencies: normalizeDependencies(manifest.dependencies, file),
       install_commands: installs,
       compatibility: compatibility ? parseCompatibility(compatibility) : null,
-      changelog: changelog ? parseChangelog(changelog) : [],
+      changelog: changelog ? parseChangelog(changelog).slice(0, 3) : [],
       trust: buildTrust({ hooks, servers, hasScripts }),
       cost: buildCost(fileArtifacts),
     });

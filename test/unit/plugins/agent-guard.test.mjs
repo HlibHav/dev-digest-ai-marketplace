@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const GUARD = join(root, 'plugins/engineering-paved-path/scripts/agent-guard.py');
-const ARGS = ['--agent', 'plan-verifier=readonly', '--agent', 'spec-creator=specs', '--agent', 'implementation-planner=planner'];
+const ARGS = ['--agent', 'plan-verifier=readonly', '--agent', 'architecture-reviewer=readonly', '--agent', 'spec-creator=specs', '--agent', 'implementation-planner=planner'];
 
 const withProject = (fn) => {
   const dir = mkdtempSync(join(tmpdir(), 'guard-'));
@@ -62,6 +62,17 @@ test('readonly agent: quoted metacharacters and diff/log options are fine; outsi
   }
   for (const command of ['git diff --no-index /etc/passwd a.txt', 'git diff --ext-diff', 'git log -p --textconv', 'git -C /etc log', `git grep "$(id)"`, 'git log "${HOME}"']) {
     assert.ok(denied(run(dir, { ...a, tool_input: { command } })), command);
+  }
+}));
+
+test('readonly agent: clustered short options and abbreviated long options cannot reach a denied flag', () => withProject((dir) => {
+  const a = { agent_type: 'architecture-review:architecture-reviewer', tool_name: 'Bash' };
+  // git grep runs -O's argument as a pager; -nOsh is -n -O sh, and git accepts unambiguous prefixes.
+  for (const command of ['git grep -nOsh x', "git grep -nO'sh -c id' x", 'git grep --open-files-in-p=sh x', 'git diff --no-ind a b', 'git diff --ext-d', 'git log -p --textc', 'git diff --outp=/tmp/x']) {
+    assert.ok(denied(run(dir, { ...a, tool_input: { command } })), command);
+  }
+  for (const command of ['git grep -n foo', 'git log --oneline --no-merges', 'git diff --name-only main...HEAD']) {
+    assert.equal(run(dir, { ...a, tool_input: { command } }), null, command);
   }
 }));
 

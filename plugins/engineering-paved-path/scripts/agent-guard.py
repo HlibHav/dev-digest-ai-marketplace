@@ -112,7 +112,18 @@ def git_read_only(tokens: list[str]) -> bool:
     if sub == "branch":
         # Listing only: a positional argument would create a branch.
         return all(a in ("--list", "-a", "-r", "--show-current", "-v", "-vv") for a in rest)
-    return not any(a.split("=", 1)[0] in GIT_DENIED_FLAGS or a.startswith("-O") for a in rest)
+    return not any(git_flag_denied(a) for a in rest)
+
+
+def git_flag_denied(arg: str) -> bool:
+    # Git accepts any unambiguous prefix of a long option (--open-files-in-p) and clusters short
+    # options (-nOsh is -n -O sh), so exact matching is not enough. Deny every long option that
+    # abbreviates a denied flag and every short cluster that contains O (grep's pager). This
+    # over-denies a few harmless spellings, which is the safe direction.
+    if arg.startswith("--"):
+        name = arg.split("=", 1)[0]
+        return len(name) > 2 and any(flag.startswith(name) for flag in GIT_DENIED_FLAGS)
+    return arg.startswith("-") and "O" in arg[1:]
 
 
 def bash_allowed(command: str, root: Path) -> tuple[bool, str]:

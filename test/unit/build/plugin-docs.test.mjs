@@ -63,3 +63,9 @@ test('compatibility: first >= range after "Claude Code", with or without backtic
   assert.equal(parseCompatibility('Claude Code 2.1'), null);
   assert.equal(parseCompatibility(''), null);
 });
+
+test('a version heading may carry free text after the version', () => {
+  const entries = parseChangelog('## 1.3.0 - Added foo\n- x\n\n## 1.2.0 — 2026-10-01\n- y\n');
+  assert.deepEqual(entries.map((e) => [e.version, e.date]), [['1.3.0', null], ['1.2.0', '2026-10-01']]);
+  assert.equal(firstChangelogVersion('## 1.3.0 - Added foo\n- x\n## 1.2.0\n- y\n'), '1.3.0');
+});

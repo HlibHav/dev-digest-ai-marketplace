@@ -2,10 +2,10 @@
 // index builder (data for the catalog). Pure string parsing: no file access here.
 
 const VERSION = '\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?';
-// `## 1.2.3`, `## [1.2.3]`, `## v1.2.3`, each optionally followed by ` — 2026-10-14`, ` - 2026-10-14` or ` (2026-10-14)`.
-const HEADING = new RegExp(
-  `^##[ \\t]+\\[?v?(${VERSION})\\]?[ \\t]*(?:(?:—|–|-)[ \\t]*(\\d{4}-\\d{2}-\\d{2})|\\((\\d{4}-\\d{2}-\\d{2})\\))?[ \\t]*$`,
-);
+// `## 1.2.3`, `## [1.2.3]`, `## v1.2.3`, optionally followed by any text; a YYYY-MM-DD in that text
+// is taken as the release date (` — 2026-10-14`, ` (2026-10-14)`, ` - Added foo`).
+const HEADING = new RegExp(`^##[ \\t]+\\[?v?(${VERSION})\\]?(?=[ \\t(]|$)(.*)$`);
+const DATE = /\b(\d{4}-\d{2}-\d{2})\b/;
 const BULLET = /^\s*(?:[-*+]|\d+[.)])\s+(.*\S)\s*$/;
 const COMPAT = /Claude Code\s*`?(>=\s*\d+\.\d+\.\d+)/;
 
@@ -48,7 +48,7 @@ export function parseChangelog(text) {
   for (const raw of String(text).split(/\r?\n/)) {
     const m = HEADING.exec(raw);
     if (m) {
-      current = { version: m[1], date: m[2] ?? m[3] ?? null, lines: [] };
+      current = { version: m[1], date: DATE.exec(m[2])?.[1] ?? null, lines: [] };
       entries.push(current);
       continue;
     }
