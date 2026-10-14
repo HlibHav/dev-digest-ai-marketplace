@@ -154,15 +154,15 @@ test.describe('wide layout (1280)', () => {
     await expect(card).toHaveAttribute('data-fx-state', 'off');
   });
 
-  test('the closed disclosure line states facts and "about"; the opened one shows neutral flags and no verdicts', async ({ page }) => {
+  test('the front line states facts and "about"; the back shows neutral flags and no verdicts', async ({ page }) => {
     await open(page);
     await page.locator('#app input[name="type"][value="plugin"]').check();
     const card = page.locator('#plugin-beta');
-    await expect(card.locator('summary')).toContainText('Declares 2 hooks (1 broad)');
-    await expect(card.locator('summary')).toContainText('about');
-    await card.locator('summary').click();
+    await expect(card.locator('.trust-toggle')).toContainText('Declares 2 hooks (1 broad)');
+    await expect(card.locator('.trust-toggle')).toContainText('about');
+    await card.locator('.trust-toggle').click();
     await expect(card.locator('.flag')).toHaveText(['broad matcher', 'non-loopback', 'scripts']);
-    await expect(card.locator('.trust-cost')).not.toContainText(/\b(safe|unsafe|dangerous|risky|verified)\b/i);
+    await expect(card.locator('.card-back')).not.toContainText(/\b(safe|unsafe|dangerous|risky|verified)\b/i);
   });
 });
 
@@ -229,7 +229,7 @@ test.describe('narrow layout (375)', () => {
       await page.setViewportSize({ width: 320, height: 700 });
       await open(page, '?plugins=suite');
       await page.locator('#app input[name="type"][value="plugin"]').check();
-      await page.locator('#plugin-beta summary').click();
+      await page.locator('#plugin-beta .trust-toggle').click();
       expect((await overflow(page)).doc).toBeLessThanOrEqual(0);
       expect((await overflow(page)).body).toBeLessThanOrEqual(0);
       await page.locator('#tray-open').click();
@@ -247,7 +247,7 @@ for (const [width, height] of [[1280, 800], [375, 800]]) {
       await page.emulateMedia({ colorScheme: scheme });
       await open(page, '?plugins=suite');
       await page.locator('#app input[name="type"][value="plugin"]').check();
-      await page.locator('#plugin-beta summary').click();
+      await page.locator('#plugin-beta .trust-toggle').click();
       const scan = async () => {
         const results = await new AxeBuilder({ page }).analyze();
         return results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical').map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(' | ')}`);

@@ -108,8 +108,13 @@ const plugin = {
 
 test('AC-36, AC-39: trust and cost render as plain text with the notices and no links', () => {
   const doc = dom();
-  const el = renderTrustCost(doc, plugin);
-  assert.equal(el.tagName, 'DETAILS');
+  const { back: el, trigger } = renderTrustCost(doc, plugin);
+  assert.equal(trigger.tagName, 'BUTTON');
+  assert.equal(trigger.getAttribute('aria-expanded'), 'false');
+  assert.equal(trigger.getAttribute('aria-controls'), el.getAttribute('id'));
+  assert.equal(el.getAttribute('inert'), '', 'the back starts turned away');
+  assert.equal(el.getAttribute('aria-hidden'), 'true');
+  assert.equal(all(el, (e) => e.getAttribute('role') === 'region' && e.getAttribute('tabindex') === '0').length, 1, 'a long back scrolls in a focusable region');
   assert.equal(byTag(el, 'a').length, 0);
   assert.ok(el.textContent.includes(TRUST_NOTICE));
   assert.ok(el.textContent.includes(COST_NOTICE));
@@ -121,7 +126,7 @@ test('AC-36, AC-39: trust and cost render as plain text with the notices and no 
 
 test('AC-37, AC-40: an empty plugin says so', () => {
   const doc = dom();
-  const el = renderTrustCost(doc, { ...plugin, trust: { hooks: [], mcp_servers: [], has_scripts: false, network_urls: [] }, cost: { always_loaded_tokens: 0, on_invocation_tokens: 0 } });
+  const { back: el } = renderTrustCost(doc, { ...plugin, trust: { hooks: [], mcp_servers: [], has_scripts: false, network_urls: [] }, cost: { always_loaded_tokens: 0, on_invocation_tokens: 0 } });
   assert.ok(el.textContent.includes('declares no hooks, MCP servers or scripts'));
   assert.ok(el.textContent.includes('0 tokens (no loaded content)'));
 });
@@ -145,14 +150,16 @@ test('AC-20, AC-24: a card shows type, name, plugin, description and a copy butt
   const buttons = byTag(card, 'button');
   assert.equal(buttons.length, 1);
   assert.match(buttons[0].getAttribute('aria-label'), /^Copy install commands for/);
-  assert.equal(byTag(card, 'details').length, 0, 'artifact cards carry no trust block');
+  assert.equal(byTag(card, 'details').length + all(card, (e) => e.getAttribute('class') === 'card-back').length, 0, 'artifact cards carry no trust block');
 });
 
-test('a plugin card carries the trust and cost details', () => {
+test('a plugin card carries the trust and cost on a flip side', () => {
   const doc = dom();
   const item = { id: 'plugin:beta', type: 'plugin', name: 'beta', plugin: 'beta', description: 'Review tooling', body: '', tags: [], category: 'review' };
   const card = createCard({ doc, win: {}, status: noop, plugins: new Map([['beta', plugin]]) }, { doc: item, score: 1, terms: [] }, []);
-  assert.equal(byTag(card, 'details').length, 1);
+  assert.equal(byTag(card, 'details').length, 0);
+  assert.equal(all(card, (e) => e.getAttribute('class') === 'card-back').length, 1);
+  assert.equal(all(card, (e) => e.getAttribute('class') === 'trust-toggle').length, 1);
   assert.ok(card.textContent.includes('v1.0.0'));
   assert.equal(TYPE_LABELS.mcp_server, 'MCP server');
 });
@@ -315,8 +322,8 @@ test('a plugin card has an id to link to, a contents line, requirements and an i
   const box = all(card, (e) => e.tagName === 'INPUT')[0];
   assert.equal(box.getAttribute('data-add-set'), 'beta');
   assert.equal(box.getAttribute('checked'), '');
-  assert.equal(byTag(card, 'details').length, 1);
-  assert.equal(byTag(card, 'summary').length, 1);
+  assert.equal(all(card, (e) => e.getAttribute('class') === 'card-back').length, 1);
+  assert.equal(all(card, (e) => e.getAttribute('class') === 'trust-toggle').length, 1);
   box.fire('change');
   assert.deepEqual(toggles, [['beta', true]]);
 });
@@ -366,7 +373,7 @@ test('the closed line of the disclosure states the declarations and the always-l
 });
 
 test('the trust disclosure shows flags as plain text and still has no links', () => {
-  const el = renderTrustCost(dom(), plugin);
+  const { back: el } = renderTrustCost(dom(), plugin);
   const flags = all(el, (e) => e.getAttribute('class') === 'flag').map((e) => e.textContent);
   assert.deepEqual(flags, ['broad matcher', 'non-loopback', 'scripts']);
   assert.equal(byTag(el, 'a').length, 0);

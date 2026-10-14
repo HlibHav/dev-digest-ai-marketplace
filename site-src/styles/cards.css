@@ -75,7 +75,7 @@
 .plugin-name { font-family: var(--font-mono); font-weight: 600; font-size: var(--fs-sm); overflow-wrap: anywhere; }
 
 /* buttons */
-.copy-btn, .retry, .clear-filter, .show-more, .btn {
+.copy-btn, .retry, .clear-filter, .show-more, .btn, .back-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   min-height: 34px; padding: 0 12px;
   font-size: var(--fs-sm); font-weight: 600; line-height: 1;
@@ -121,23 +121,23 @@
   border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 8px 10px;
 }
 
-/* ---- trust profile + cost: one disclosure; the card grows in place and keeps its grid cell ---- */
+/* ---- trust profile + cost: the card turns over; the front keeps the card's height, the grid never moves (AC-60) ---- */
 .trust-cost { border-top: 1px solid var(--border); margin: 2px -18px 0; padding: 0 18px; }
-.trust-cost > summary {
-  list-style: none; cursor: pointer;
-  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px;
-  min-height: 40px; padding: 8px 0;
-  font-size: var(--fs-sm); color: var(--text);
+.trust-toggle {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; width: 100%; text-align: left;
+  min-height: 40px; padding: 8px 22px 8px 0; position: relative;
+  font: inherit; font-size: var(--fs-sm); color: var(--text);
+  background: none; border: 0; cursor: pointer;
 }
-.trust-cost > summary::-webkit-details-marker { display: none; }
-.trust-cost > summary::before {
-  content: ""; width: 7px; height: 7px; border-right: 1.5px solid var(--text-muted); border-bottom: 1.5px solid var(--text-muted);
-  transform: rotate(-45deg); margin: 0 4px 0 2px; transition: transform var(--dur-fast);
+.trust-toggle::after {
+  content: ""; position: absolute; right: 4px; top: 50%; width: 7px; height: 7px; margin-top: -4px;
+  border-right: 1.5px solid var(--text-muted); border-bottom: 1.5px solid var(--text-muted);
+  transform: rotate(-45deg); transition: transform var(--dur-fast);
 }
-.trust-cost[open] > summary::before { transform: rotate(45deg); }
-.trust-cost > summary b { font-weight: 600; }
+.trust-toggle:hover::after { transform: translateX(2px) rotate(-45deg); }
+.trust-toggle b { font-weight: 600; }
 .summary-facts { color: var(--text-muted); }
-.trust-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-5); padding: 4px 0 16px; }
+.trust-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-5); padding: 4px 0 0; }
 .trust, .cost { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
 .trust-title, .cost-title { font-size: var(--fs-sm); font-weight: 650; letter-spacing: .02em; text-transform: uppercase; color: var(--text-muted); }
 .trust-notice, .cost-notice { font-size: var(--fs-sm); color: var(--text-muted); text-wrap: pretty; }
@@ -166,7 +166,7 @@
 
 @media (min-width: 640px) {
   /* free-text results: one row per entry */
-  .grid.is-list .card {
+  .grid.is-list .card:not(.has-flip), .grid.is-list .card-front {
     display: grid; grid-template-columns: minmax(0, 15rem) minmax(0, 1fr); column-gap: var(--space-5); row-gap: 8px; align-items: start;
     grid-template-areas: "head head" "title desc" "rel desc" "req actions" "trust trust" "fb fb";
   }
@@ -189,6 +189,7 @@
 @media (max-width: 639px) {
   .card { padding: 14px 14px; }
   .trust-cost { margin: 2px -14px 0; padding: 0 14px; }
+  .card-front, .card-back { padding: 14px 14px; }
   .copy-btn, .retry, .clear-filter, .show-more, .btn { min-height: 44px; }
   .owner { min-height: 36px; }
 }
@@ -196,3 +197,28 @@
 
 .whats-new { font-size: var(--fs-xs); color: var(--text-muted); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 .whats-new b { color: var(--text); font-weight: 600; }
+
+/* ---- card flip: .card-inner turns about its centre; both faces share the card's box ---- */
+.card.has-flip { padding: 0; gap: 0; perspective: 2000px; }
+.card-inner { position: relative; display: flex; flex-direction: column; flex: 1; transform-style: preserve-3d; transition: transform 400ms ease; }
+.card[data-flipped] .card-inner { transform: rotateY(180deg); }
+.card-front { display: flex; flex-direction: column; gap: 10px; flex: 1; padding: 16px 18px; min-width: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.card-back {
+  position: absolute; inset: 0; display: flex; flex-direction: column; gap: var(--space-3); min-height: 0; min-width: 0;
+  padding: 16px 18px; background: var(--card-bg); border-radius: var(--radius-md);
+  transform: rotateY(180deg); backface-visibility: hidden; -webkit-backface-visibility: hidden;
+}
+.back-head { display: flex; align-items: center; gap: var(--space-3); min-width: 0; flex: none; }
+.back-title { font-family: var(--font-mono); font-size: var(--fs-md); font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.back-btn:hover { background: color-mix(in srgb, var(--text) 10%, var(--card-bg)); }
+.back-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; margin: 0 -6px; padding: 0 6px; }
+.back-body:focus-visible { outline: 2px solid var(--type-color); outline-offset: 0; border-radius: var(--radius-sm); }
+.card:not([data-flipped]) .card-back { pointer-events: none; }
+/* reduced motion: no rotation, a short cross-fade between the faces instead */
+@media (prefers-reduced-motion: reduce) {
+  .card.has-flip .card-inner, .card.has-flip[data-flipped] .card-inner { transform: none; transition: none !important; }
+  .card.has-flip .card-front, .card.has-flip .card-back { transform: none; backface-visibility: visible; -webkit-backface-visibility: visible; transition: opacity 150ms linear !important; }
+  .card.has-flip .card-back { opacity: 0; }
+  .card.has-flip[data-flipped] .card-back { opacity: 1; }
+  .card.has-flip[data-flipped] .card-front { opacity: 0; }
+}

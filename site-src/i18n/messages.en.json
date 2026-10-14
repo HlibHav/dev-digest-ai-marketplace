@@ -120,6 +120,8 @@
   },
   "trust": {
     "summary": "Trust and cost",
+    "back": "← Back",
+    "bodyAria": "Trust and cost details for {name}",
     "title": "Trust profile",
     "notice": "This profile describes what this plugin declares, not a security audit.",
     "empty": "This plugin declares no hooks, MCP servers or scripts.",

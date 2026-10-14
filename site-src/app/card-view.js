@@ -3,7 +3,7 @@ import { h } from './safe-dom.js';
 import { highlightRanges, appendHighlighted } from './highlight.js';
 import { MARKETPLACE, REPO } from '../contract/index-contract.js';
 import { copyAndAnnounce } from './status.js';
-import { renderTrustCost } from './trust-view.js';
+import { renderTrustCost, wireFlip } from './trust-view.js';
 import { compatibilityText, whatsNew } from './plugin-facts.js';
 import { t } from '../i18n/t.js';
 
@@ -96,9 +96,12 @@ export function createCard(ctx, hit, extraTerms = []) {
   const owner = plugins.get(item.plugin);
   const isPlugin = item.type === 'plugin';
 
-  const attrs = { class: 'card', 'data-card': '', 'data-type': item.type, 'data-plugin': item.plugin };
+  // A plugin card turns over to show its trust profile and cost (AC-60): the front face keeps today's content.
+  const flips = isPlugin && Boolean(owner);
+  const attrs = { class: flips ? 'card has-flip' : 'card', 'data-card': '', 'data-type': item.type, 'data-plugin': item.plugin };
   if (isPlugin) Object.assign(attrs, { id: `plugin-${item.name}`, tabindex: '-1' });
   const card = h(d, 'li', attrs);
+  const front = flips ? h(d, 'div', { class: 'card-front' }) : card;
   // tokens.css already maps [data-type] to --type-color; setting it through the CSSOM keeps it explicit and CSP-safe.
   card.style?.setProperty('--type-color', `var(--type-${item.type})`);
 
@@ -131,7 +134,7 @@ export function createCard(ctx, hit, extraTerms = []) {
       onManual: () => {
         if (!manual) {
           manual = h(d, 'pre', { class: 'install manual-copy' }, lines);
-          card.append(h(d, 'div', { class: 'copy-fallback' }, h(d, 'p', {}, t('card.manualCopyHint')), manual));
+          front.append(h(d, 'div', { class: 'copy-fallback' }, h(d, 'p', {}, t('card.manualCopyHint')), manual));
         }
         return manual;
       },
@@ -150,18 +153,18 @@ export function createCard(ctx, hit, extraTerms = []) {
   }
   actions.append(actionsEnd);
 
-  card.append(head, title, description);
+  front.append(head, title, description);
   if (isPlugin) {
     const entries = contentsEntries(ctx.contents?.get(item.name));
     if (entries.length) {
-      card.append(
+      front.append(
         h(d, 'ul', { class: 'contents', 'aria-label': t('card.contentsAria') }, ...entries.map((e) => h(d, 'li', { 'data-type': e.type }, h(d, 'span', { class: 'contents-dot' }), e.text))),
       );
     }
     const compat = owner ? compatibilityText(owner) : null;
-    if (compat) card.append(h(d, 'p', { class: 'requires compat' }, compat));
+    if (compat) front.append(h(d, 'p', { class: 'requires compat' }, compat));
     const news = owner ? whatsNew(owner) : null;
-    if (news) card.append(h(d, 'p', { class: 'whats-new', title: news.note ? `${news.title} ${news.note}` : news.title }, h(d, 'b', {}, news.title), news.note ? ` ${news.note}` : null));
+    if (news) front.append(h(d, 'p', { class: 'whats-new', title: news.note ? `${news.title} ${news.note}` : news.title }, h(d, 'b', {}, news.title), news.note ? ` ${news.note}` : null));
     const deps = owner?.dependencies ?? [];
     if (deps.length) {
       const parts = [];
@@ -169,7 +172,7 @@ export function createCard(ctx, hit, extraTerms = []) {
         if (i > 0) parts.push(', ');
         parts.push(h(d, 'code', {}, dep.name), ' ', h(d, 'span', { class: 'range' }, dep.range));
       });
-      card.append(h(d, 'p', { class: 'requires' }, `${t('card.requires')} `, ...parts));
+      front.append(h(d, 'p', { class: 'requires' }, `${t('card.requires')} `, ...parts));
     }
   } else {
     const chip = h(
@@ -188,9 +191,14 @@ export function createCard(ctx, hit, extraTerms = []) {
       event.preventDefault();
       ctx.reveal(item.plugin);
     });
-    card.append(chip);
+    front.append(chip);
   }
-  card.append(actions);
-  if (isPlugin && owner) card.append(renderTrustCost(d, owner));
+  front.append(actions);
+  if (flips) {
+    const trust = renderTrustCost(d, owner);
+    front.append(trust.bar);
+    card.append(h(d, 'div', { class: 'card-inner' }, front, trust.back));
+    wireFlip(card, front, trust);
+  }
   return card;
 }
