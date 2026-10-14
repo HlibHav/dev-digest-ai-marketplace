@@ -45,6 +45,46 @@ number_hunks() {
   '
 }
 
+# The out-dir is removed and rebuilt, so it must sit strictly below the system temp folder or the
+# repo's .tmp/. Anything else (empty, /, the repo, $HOME, a `..` path) is refused before `rm -rf`.
+canonical() {
+  # Physical path of $1, which may not exist yet: resolve the nearest existing ancestor.
+  local p=$1 rest=""
+  while [ ! -d "$p" ]; do
+    rest="/$(basename "$p")$rest"
+    p=$(dirname "$p")
+  done
+  p=$(cd "$p" && pwd -P)
+  printf '%s%s\n' "${p%/}" "$rest"
+}
+refuse() { echo "refusing out-dir '$OUT': $1" >&2; exit 2; }
+[ -n "$OUT" ] || refuse "empty"
+case "/$OUT/" in */./*|*/../*) refuse "contains . or .. segments" ;; esac
+case "$OUT" in /*) ;; *) OUT="$PWD/$OUT" ;; esac
+OUT_REAL=$(canonical "$OUT")
+TOP=$(canonical "$(git rev-parse --show-toplevel)")
+HOME_REAL=$(canonical "$HOME")
+for keep in "$TOP" "$HOME_REAL"; do
+  case "$keep/" in "$OUT_REAL"/*) refuse "is or contains $keep" ;; esac
+done
+allowed=0
+case "$OUT_REAL" in
+  "$TOP"/.tmp/?*) allowed=1 ;;
+  "$TOP"/*) ;;
+  *)
+    for base in "${TMPDIR:-/tmp}" /tmp; do
+      base_real=$(canonical "$base")
+      # A temp base of /, $HOME or an ancestor of $HOME would allow far too much: ignore it.
+      [ -n "$base_real" ] || continue
+      case "$HOME_REAL/" in "$base_real"/*) continue ;; esac
+      case "$OUT_REAL" in "$base_real"/?*) allowed=1 ;; esac
+    done
+    ;;
+esac
+[ "$allowed" -eq 1 ] || refuse "must be inside the system temp folder or the repo's .tmp/"
+
+# Remove the path that was checked, not the one that was typed.
+OUT=$OUT_REAL
 rm -rf "$OUT"
 mkdir -p "$OUT/hunks"
 

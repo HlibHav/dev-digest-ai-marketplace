@@ -6,6 +6,7 @@ All notable changes to this plugin are listed here. Versions follow [SemVer](htt
 
 ### Security
 - `scripts/agent-guard.py`: read-only agents could run an arbitrary program through `git grep -O`, either with the flag clustered into other short options (`-nOsh`) or with an abbreviated long option (`--open-files-in-p`). Abbreviated forms of `--no-index`, `--ext-diff`, `--textconv` and `--output` also slipped past. The guard now denies every short cluster containing `O` and every long option that abbreviates a denied flag.
+- `review-bundle.sh` removes and rebuilds its out-dir, and it did so for any path it was given. It now refuses, before `rm -rf`, an out-dir that is empty, has `.` or `..` segments, is or contains the repository or `$HOME`, or lies outside the system temp folder and the repository's `.tmp/`. A `TMPDIR` of `/`, `$HOME` or an ancestor of `$HOME` does not count as a temp folder, and the checked canonical path is the one removed.
 
 ## 1.0.0 — 2026-10-14
 

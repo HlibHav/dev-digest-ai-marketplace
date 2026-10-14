@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -59,5 +59,29 @@ test('check-repo SKIP_DIRS skips generated directories', () => {
   assert.ok(m, 'SKIP_DIRS not found');
   for (const d of ['.tmp', 'test-results', 'playwright-report']) {
     assert.ok(m[1].includes(`'${d}'`), `SKIP_DIRS must include ${d}`);
+  }
+});
+
+/** Lines of `text` that use a GitHub Action without a full commit SHA and an exact version comment. */
+export function unpinnedUses(text) {
+  return text.split('\n')
+    .map((line, i) => ({ n: i + 1, line }))
+    .filter(({ line }) => /^\s*(-\s+)?uses:/.test(line) && !/uses:\s+\.\//.test(line))
+    .filter(({ line }) => !/uses:\s+[\w.-]+\/[\w./-]+@[0-9a-f]{40} # v\d+\.\d+\.\d+\s*$/.test(line));
+}
+
+test('unpinnedUses flags a tag ref and accepts a SHA with its version comment', () => {
+  assert.deepEqual(unpinnedUses('      - uses: actions/checkout@v4').map((u) => u.n), [1]);
+  assert.equal(unpinnedUses('      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262').length, 1, 'a SHA without its version comment');
+  assert.deepEqual(unpinnedUses('        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0'), []);
+});
+
+test('every GitHub Action in the workflows is pinned to a commit SHA', () => {
+  const dir = '.github/workflows';
+  const files = readdirSync(join(root, dir)).filter((f) => /\.ya?ml$/.test(f));
+  assert.ok(files.length > 0, 'no workflows found');
+  for (const f of files) {
+    const bad = unpinnedUses(read(`${dir}/${f}`));
+    assert.deepEqual(bad, [], `${dir}/${f}: pin each action as owner/repo@<40-hex sha> # vX.Y.Z`);
   }
 });

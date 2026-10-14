@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  buildClaudeArgs, evaluateAssertions, extractMetrics, formatTable, globToRegex, median, parseArgs,
+  buildClaudeArgs, evalEnv, evaluateAssertions, extractMetrics, formatTable, globToRegex, median, parseArgs,
   parseStream, probeVerdict, slashSkillFromPrompt, selectCases, snapshotFiles, summarize, toRegex,
 } from '../../../scripts/run-evals.mjs';
 
@@ -276,4 +276,57 @@ test('cases.json is well formed and its fixture and assertion keys exist', async
   }
   assert.ok(cfg.cases.some((c) => c.expensive));
   assert.ok(readFileSync(join(root, 'plugins/sdd-engineering/evals', cfg.fixture, 'CLAUDE.md'), 'utf8').includes('npm test'));
+});
+
+test('evalEnv passes auth, locale and proxy variables and drops every other inherited one', () => {
+  const env = evalEnv({
+    PATH: '/bin', HOME: '/h', TMPDIR: '/t', LANG: 'en_US.UTF-8', LC_ALL: 'C', TERM: 'xterm',
+    ANTHROPIC_API_KEY: 'k', CLAUDE_CODE_OAUTH_TOKEN: 'o', HTTPS_PROXY: 'p', NODE_EXTRA_CA_CERTS: 'ca',
+    GITHUB_TOKEN: 'secret', AWS_SECRET_ACCESS_KEY: 'secret', NPM_TOKEN: 'secret', OPENAI_API_KEY: 'secret',
+  }, 'haiku');
+  for (const k of ['GITHUB_TOKEN', 'AWS_SECRET_ACCESS_KEY', 'NPM_TOKEN', 'OPENAI_API_KEY']) assert.ok(!(k in env), `${k} leaked`);
+  assert.deepEqual(
+    [env.PATH, env.HOME, env.TMPDIR, env.LANG, env.LC_ALL, env.TERM, env.ANTHROPIC_API_KEY, env.CLAUDE_CODE_OAUTH_TOKEN, env.HTTPS_PROXY, env.NODE_EXTRA_CA_CERTS],
+    ['/bin', '/h', '/t', 'en_US.UTF-8', 'C', 'xterm', 'k', 'o', 'p', 'ca'],
+  );
+  assert.equal(env.CLAUDE_CODE_DISABLE_AUTO_MEMORY, '1');
+  assert.equal(env.CLAUDE_CODE_SUBAGENT_MODEL, 'haiku');
+  assert.equal(env.CLAUDE_CODE_SUBAGENT_MODEL_FORCE, '1');
+});
+
+test('evalEnv keeps the secret name the evals workflow passes', () => {
+  const wf = readFileSync(resolve(here, '../../../.github/workflows/evals.yml'), 'utf8');
+  const names = [...wf.matchAll(/^\s+([A-Z][A-Z0-9_]*):\s*\$\{\{\s*secrets\./gm)].map((m) => m[1]);
+  assert.ok(names.length > 0, 'no secrets in evals.yml');
+  const env = evalEnv(Object.fromEntries(names.map((n) => [n, 'x'])), 'haiku');
+  for (const n of names) assert.equal(env[n], 'x', `${n} from evals.yml is dropped`);
+});
+
+test('buildClaudeArgs uses acceptEdits with an allowlist, not bypassPermissions', () => {
+  const args = buildClaudeArgs({ prompt: 'hi', model: 'haiku', maxTurns: 3, pluginRoot: '/repo' });
+  assert.ok(!args.includes('bypassPermissions'));
+  assert.equal(args[args.indexOf('--permission-mode') + 1], 'acceptEdits');
+  const allowed = args[args.indexOf('--allowedTools') + 1].split(',');
+  assert.ok(allowed.includes('Agent') && allowed.includes('Bash(npm test:*)'));
+  assert.ok(allowed.includes('Bash(bash /repo/plugins/engineering-paved-path/skills/review-bundle/scripts/review-bundle.sh:*)'));
+  assert.ok(!allowed.includes('Bash(bash:*)'), 'any bash script is allowed');
+  assert.ok(!allowed.some((t) => /^(Bash|WebFetch|WebSearch|Read|Write|Edit|MultiEdit|Glob|Grep)$/.test(t)), 'an unscoped Bash, file or web tool is allowed');
+  assert.ok(!allowed.some((t) => t.startsWith('Bash(git grep')), 'git grep -O runs a program');
+});
+
+test('snapshotFiles records a symlink by its target without following it, and skips non-regular files', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'snap-'));
+  const outside = mkdtempSync(join(tmpdir(), 'snap-out-'));
+  try {
+    writeFileSync(join(outside, 'secret.txt'), 'outside');
+    symlinkSync(join(outside, 'secret.txt'), join(dir, 'link-file'));
+    symlinkSync(outside, join(dir, 'link-dir'));
+    const snap = snapshotFiles(dir);
+    assert.deepEqual(Object.keys(snap).sort(), ['link-dir', 'link-file']);
+    writeFileSync(join(outside, 'secret.txt'), 'changed outside');
+    assert.equal(snapshotFiles(dir)['link-file'], snap['link-file'], 'the link target content was read');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+    rmSync(outside, { recursive: true, force: true });
+  }
 });

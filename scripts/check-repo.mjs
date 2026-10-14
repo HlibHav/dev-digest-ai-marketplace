@@ -8,11 +8,21 @@ import { BuildError } from './lib/errors.mjs';
 import { firstChangelogVersion, parseCompatibility } from './lib/plugin-docs.mjs';
 
 // Usage: node scripts/check-repo.mjs [--root <dir>]   (--root exists so tests can point at a bad fixture)
-const argv = process.argv.slice(2);
-const rootFlag = argv.indexOf('--root');
-const root = rootFlag >= 0 && argv[rootFlag + 1]
-  ? resolve(argv[rootFlag + 1])
-  : resolve(dirname(fileURLToPath(import.meta.url)), '..');
+// A bad argument exits 2 instead of falling back to the real repo, so a test aimed at a broken
+// fixture cannot pass by checking the wrong tree.
+const usage = () => {
+  console.error('usage: node scripts/check-repo.mjs [--root <dir>]');
+  process.exit(2);
+};
+let rootArg = null;
+for (let i = 2; i < process.argv.length; i += 1) {
+  if (process.argv[i] !== '--root') usage();
+  const value = process.argv[i + 1];
+  if (!value || value.startsWith('--')) usage();
+  rootArg = value;
+  i += 1;
+}
+const root = rootArg ? resolve(rootArg) : resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const violations = [];
 const fail = (path, rule) => violations.push(`${path}: ${rule}`);
 

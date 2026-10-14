@@ -177,13 +177,13 @@ One `PreToolUse` hook, matcher `Write|Edit|MultiEdit|NotebookEdit|Bash`, running
 
 | Agent | Profile | Allowed |
 |---|---|---|
-| `spec-creator` | `specs` | Writes only to Markdown under a `specs/` directory inside the project; no Bash. |
+| `spec-creator` | `specs` | Writes only to Markdown under a `specs/` directory inside the project, at any depth (`packages/api/specs/` counts); no Bash. |
 | `implementation-planner` | `planner` | No writes, no Bash. |
 | `plan-verifier` | `readonly` | No writes; Bash limited to read-only git and the commands in `checkCommands`. |
 
 - Denied shell characters for read-only agents: `;`, `&`, `|`, `<` and `>` outside quotes, and backticks, `$(`, `${` and newlines anywhere.
 - Allowed git: `diff`, `log`, `show`, `status`, `blame`, `merge-base`, `rev-parse`, `ls-files`, `grep`, `cat-file`, branch listing, `describe`, `shortlog`. Denied: options before the subcommand (`git -C`, `git -c`), `--output`, `-O`, `--no-index`, `--ext-diff`, `--textconv`.
-- For these agents malformed tool input is denied. Input with no `agent_type` (the main session, other agents) passes silently.
+- Where the guard cannot tell who is calling, it fails open: when stdin is not a JSON object, or the input has no string `agent_type` (the main session, and any agent not named on the command line), it exits 0 silently and the tool call goes ahead. It denies malformed input only once it knows the caller is guarded: a guarded agent whose input has no string `tool_name` or no object `tool_input`, or a Bash call with no string `command`.
 
 `implementer` and the main session are not restricted by the hook; the implementer is limited by its own definition (plan paths, no commit, no push). A denial is a PreToolUse `deny` decision with a reason. The hook reads the tool input and one local config file, writes nothing and makes no network calls. `architecture-review` ships its own hook for the reviewer.
 

@@ -57,9 +57,24 @@ strict about structure (who ran, what was written, what must not appear). A pass
 Each run copies `fixtures/tiny-app` to a fresh directory under the OS temp folder (never inside a
 `.claude` directory), `git init`s and commits it, applies the case's `setup.files`, and runs
 `claude -p` there with `--setting-sources project`, `--strict-mcp-config` with an empty MCP
-config, `--permission-mode bypassPermissions` (safe only because the directory is disposable),
-`CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`, and `--plugin-dir` for the four plugins resolved from the
-repo root. `node scripts/run-evals.mjs --probe` checks the result: no skill, agent or command
+config, `--permission-mode acceptEdits` with an `--allowedTools` list (`allowedTools()` in the
+runner), `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`, and `--plugin-dir` for the four plugins resolved from
+the repo root. A headless run cannot answer a prompt, so anything that would ask is denied. Edits
+and reads are accepted inside the temp repo only (a probe that asked for a Read and a Write
+outside it got both denied). Bash is allowed for `npm test`, `node --test`, the git that
+`run-plan` needs (read, branch, add, commit) and the loaded `review-bundle.sh`. There are no web
+tools. Each run record lists its `permissionDenials`, so a case that fails on a missing permission
+shows it.
+
+The child environment is an allowlist too (`evalEnv()`): `PATH`, `HOME`, locale, temp, proxy and
+CA variables and the Claude auth variables. Anything else the parent shell holds, such as
+`GITHUB_TOKEN`, is not passed. The temp repo is removed in a `finally`, also when a run throws,
+unless `--keep` is given.
+
+**This is not a sandbox.** The allowlist only decides what runs without a prompt. `npm test` runs
+code the model wrote, and that code has your login, your `HOME` and the network. git accepts
+`--output`, and a hook written into the temp repo runs on commit. Run the evals on cases and
+fixtures you trust, and treat a run as executing untrusted code as you. `node scripts/run-evals.mjs --probe` checks the result: no skill, agent or command
 from `~/.claude`, only the four plugins (plus the CLI's builtin ones), no MCP servers, no hook
 events from outside the plugins, and the model, asked about the global `CLAUDE.md`, answers that
 it has none. What stays shared: the login and the CLI's own bundled skills (`verify`, `code-review`
