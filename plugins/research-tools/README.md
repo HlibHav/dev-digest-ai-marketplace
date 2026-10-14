@@ -58,11 +58,11 @@ Nothing is required. Helpful, if present: `INSIGHTS.md` in package roots, `docs/
 
 ## Hooks
 
-None. The agent is read-only because its `tools` list has no Write, Edit or Bash. The plugin itself makes no network calls. The agent's WebSearch and WebFetch tools, and the NotebookLM server it may use, do reach the network.
+None. The agent is read-only because its `tools` list has no Write, Edit or Bash. The plugin itself makes no network calls. The agent's WebSearch and WebFetch tools, and the NotebookLM server it may use, do reach the network. What the agent reads can still leave the machine: in a WebFetch URL, or in a `research_start` query. Closing the NotebookLM write tools removes the path that copied content into a notebook; it does not make the agent safe to point at secrets.
 
 ## External tools
 
-- Optional: a NotebookLM MCP server named `notebooklm-mcp`. The agent's `tools` list names the NotebookLM tools it may use one by one: query, research, create and add. There are no delete, share or studio tools in the list. With no such server those names grant nothing and the agent is web-only. On a NotebookLM auth error the agent stops using it and tells you to re-authenticate that server.
+- Optional: a NotebookLM MCP server named `notebooklm-mcp`. The agent's `tools` list names the NotebookLM tools it may use one by one: list, describe, query, read a source, and the research flow (`research_start`, `research_status`, `research_import`). `research_start` creates the notebook for new research. Since 1.0.1 there is no tool to create notebooks by hand, add or rename sources, write notes or tags, and there never were delete, share or studio tools. With no such server those names grant nothing and the agent is web-only. On a NotebookLM auth error the agent stops using it and tells you to re-authenticate that server.
 - Web access through the agent's WebSearch and WebFetch tools.
 
 ## Compatibility
@@ -71,7 +71,7 @@ Claude Code `>=2.1.110`. Details in [COMPATIBILITY.md](COMPATIBILITY.md).
 
 ## Troubleshooting
 
-- `claude plugin list --json` shows `dependency-unsatisfied`, `range-conflict` or `no-matching-tag` for `sdd-engineering` and names this plugin: install or update `research-tools` to a `1.x` version, or check that the `research-tools--v1.0.0` tag exists, then run `/reload-plugins`.
+- `claude plugin list --json` shows `dependency-unsatisfied`, `range-conflict` or `no-matching-tag` for `sdd-engineering` and names this plugin: install or update `research-tools` to a `1.x` version, or check that a `research-tools--v1.x.y` tag exists, then run `/reload-plugins`.
 - The agent says NotebookLM is unavailable: connect the `notebooklm-mcp` server and sign in, or ignore it; the web path still works.
 - The agent replies with questions instead of a report: the brief had no concrete question. Name the thing to find and where to look.
 

@@ -32,7 +32,7 @@ Lab brief steps still open: 8 (cost), 9 (release), 10 (install elsewhere, **post
 
 From the review comment on PR #4 (`#issuecomment-6172069258`):
 
-1. `research-tools:researcher` has WebFetch and NotebookLM write tools (`notebook_create`, `source_add`, `note`, `tag`), so it can be prompt-injected into exfiltration. Keep read and query tools and the research flow (`research_start`, `research_status`, `research_import`). Drop `notebook_create`, `source_add`, `note` and `tag`, or move them behind an explicit "write" mode the caller asks for. Bump research-tools to **1.0.1 or 1.1.0** (removing tools is behaviour-narrowing, decide and note it in the CHANGELOG).
+1. `research-tools:researcher` has WebFetch and NotebookLM write tools (`notebook_create`, `source_add`, `note`, `tag`), so it can be prompt-injected into exfiltration. Keep read and query tools and the research flow (`research_start`, `research_status`, `research_import`). Drop `notebook_create`, `source_add`, `note` and `tag`, or move them behind an explicit "write" mode the caller asks for. Bump research-tools to **1.0.1 or 1.1.0** (removing tools is behaviour-narrowing, decide and note it in the CHANGELOG). Done in phase 1: **1.0.1**, as a `### Security` patch (see its CHANGELOG).
 2. `scripts/run-evals.mjs` uses `--permission-mode bypassPermissions`. Pass a minimal `env` (no inherited secrets except auth) and try `acceptEdits` plus an allowlist first; if bypass stays, document it in `evals/README.md` and SECURITY.md as a known risk. Clean up the temp dir in a `finally`, and use `lstat` in `snapshotFiles`.
 3. Pin GitHub Actions to commit SHAs in `validate.yml`, `pages.yml` and `evals.yml` (keep the tag in a comment).
 4. `review-bundle.sh` must refuse an empty out-dir, `/`, or a path outside the repo's `.tmp`/temp before `rm -rf`.
@@ -46,7 +46,7 @@ Gate: `check.sh`, e2e, the security-reviewer agent re-run on the diff. The guard
 
 1. CHANGELOG review: 1.0.0 and 1.0.1 entries must match what shipped.
 2. GitHub Releases for the existing 1.0.0 tags: `gh release create <plugin>--v1.0.0 --title "<plugin>@1.0.0" --notes-file <changelog excerpt>`. Run it in tag order.
-3. Tag 1.0.1 for the three guard plugins from a clean `main` checkout, after CI is green. In each plugin directory run `claude plugin tag --dry-run` and then `--push`. Then create the Releases. Mark 1.0.0 as superseded for security in its release notes.
+3. Tag 1.0.1 for all four plugins (the three guard plugins, and `research-tools` after phase 1 removed its NotebookLM write tools) from a clean `main` checkout, after CI is green, in the tag order above. In each plugin directory run `claude plugin tag --dry-run` and then `--push`. Then create the Releases. Mark 1.0.0 as superseded for security in its release notes.
 4. Install check from a temp project (not a real one; step 10 waits):
    `claude plugin marketplace add HlibHav/dev-digest-ai-marketplace --scope project` → `claude plugin install sdd-engineering@dev-digest-ai-marketplace --scope project` → `claude plugin list --json`. Expect no `dependency-unsatisfied`, `range-conflict` or `no-matching-tag`. Uninstall and remove afterwards.
 
