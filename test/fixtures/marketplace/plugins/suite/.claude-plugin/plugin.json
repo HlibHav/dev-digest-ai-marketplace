@@ -1,0 +1,12 @@
+{
+  "name": "suite",
+  "version": "1.0.0",
+  "description": "A bundle that depends on alpha, beta and delta.",
+  "author": { "name": "fixture" },
+  "license": "MIT",
+  "dependencies": [
+    { "name": "alpha", "version": "~1.0.0" },
+    { "name": "beta", "version": "~1.0.0" },
+    { "name": "delta", "version": "~0.2.0" }
+  ]
+}

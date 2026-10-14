@@ -1,0 +1,13 @@
+{
+  "name": "fixture-marketplace",
+  "owner": { "name": "fixture" },
+  "description": "Fixture marketplace used by the catalog tests. Never published.",
+  "plugins": [
+    { "name": "alpha", "source": "./plugins/alpha", "description": "One of everything: a skill, an agent, a command, two hooks and two MCP servers.", "category": "engineering", "tags": ["fixture", "complete"] },
+    { "name": "beta", "source": "./plugins/beta", "description": "Review and operations tooling that depends on alpha and gamma.", "category": "review", "tags": ["fixture", "architecture"] },
+    { "name": "gamma", "source": "./plugins/gamma", "description": "A thin plugin that depends on delta.", "category": "workflow", "tags": ["fixture"] },
+    { "name": "delta", "source": "./plugins/delta", "description": "A plugin whose skill description carries markup, to test escaping.", "category": "research", "tags": ["fixture", "xss"] },
+    { "name": "epsilon", "source": "./plugins/epsilon", "description": "A plugin with no skills, agents, commands, hooks or servers.", "category": "misc", "tags": ["fixture", "empty"] },
+    { "name": "suite", "source": "./plugins/suite", "description": "A bundle that depends on alpha, beta and delta.", "category": "workflow", "tags": ["fixture", "bundle"] }
+  ]
+}

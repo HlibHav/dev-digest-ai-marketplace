@@ -9,3 +9,6 @@
 /plugins/research-tools/           @HlibHav
 /plugins/architecture-review/      @HlibHav
 /plugins/sdd-engineering/          @HlibHav
+/data/                             @HlibHav
+/package.json                      @HlibHav
+/package-lock.json                 @HlibHav

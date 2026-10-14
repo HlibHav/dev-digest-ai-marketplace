@@ -1,0 +1,10 @@
+{
+  "name": "gamma",
+  "version": "0.3.2",
+  "description": "A thin plugin that depends on delta.",
+  "author": { "name": "fixture" },
+  "license": "MIT",
+  "dependencies": [
+    { "name": "delta", "version": "~0.2.0" }
+  ]
+}

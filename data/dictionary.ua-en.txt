@@ -1,0 +1,121 @@
+# Ukrainian -> English search dictionary.
+# Format: word = en1, en2
+# One Ukrainian word form per line (inflections are listed explicitly; there is no stemmer).
+# Keys are lowercase; the apostrophe variants ' ’ ʼ are the same character.
+# A key must appear once. Changes go through a PR reviewed by CODEOWNERS.
+
+# architecture and design
+архітектура = architecture
+архітектури = architecture
+архітектуру = architecture
+архітектурі = architecture
+архітектурний = architecture, architectural
+дизайн = design
+проєктування = design
+проектування = design
+
+# review and quality
+рев'ю = review
+ревю = review
+ревью = review
+огляд = review
+огляду = review
+перевірка = check, review
+перевірки = check, review
+перевірку = check, review
+перевірити = check, verify
+аудит = audit
+аудиту = audit
+якість = quality
+якості = quality
+рецензія = review
+
+# security
+безпека = security
+безпеки = security
+безпеку = security
+вразливість = vulnerability
+вразливості = vulnerability
+секрет = secret
+секрети = secrets
+
+# tests
+тест = test
+тести = test, tests
+тестів = test, tests
+тесту = test
+тестування = testing, test
+покриття = coverage
+
+# research, spec, plan, docs
+дослідження = research
+досліджень = research
+дослідник = researcher
+специфікація = spec, specification
+специфікації = spec, specification
+специфікацію = spec, specification
+план = plan
+плани = plan, plans
+плану = plan
+планування = planning, plan
+документація = documentation, docs
+документації = documentation, docs
+документацію = documentation, docs
+нотатки = notes
+звіт = report
+звіти = report, reports
+підсумок = summary
+дайджест = digest
+
+# delivery
+деплой = deploy
+деплою = deploy
+розгортання = deploy, deployment
+реліз = release
+релізу = release
+релізи = release, releases
+збірка = build
+збірки = build
+міграція = migration
+міграції = migration, migrations
+
+# code work
+код = code
+коду = code
+налагодження = debug, debugging
+дебаг = debug
+дебагінг = debugging, debug
+помилка = error, bug
+помилки = error, bug
+баг = bug
+баги = bug, bugs
+рефакторинг = refactor, refactoring
+рефакторингу = refactor, refactoring
+оптимізація = optimization, performance
+продуктивність = performance
+розробка = development
+розробник = developer
+розробки = development
+
+# stack words
+сервер = server
+клієнт = client
+інтерфейс = ui, interface
+фронтенд = frontend
+бекенд = backend
+база = database
+бази = database
+схема = schema
+схеми = schema
+пошук = search
+каталог = catalog
+запит = query, request
+запити = query, request
+встановлення = install, installation
+інструмент = tool
+інструменти = tool, tools
+конфігурація = config, configuration
+налаштування = settings, config
+логування = logging
+моніторинг = monitoring
+розширення = extension

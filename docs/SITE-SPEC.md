@@ -6,7 +6,7 @@ A GitHub Pages page that lets people browse the plugins in this marketplace. It 
 
 ## Build
 
-`scripts/build-index.mjs` reads `.claude-plugin/marketplace.json` and each `plugins/<name>/.claude-plugin/plugin.json` and writes `site/`. Fields from `plugin.json` win over the catalog entry. The `pages` workflow builds and deploys on changes to the catalog, any `plugin.json`, `site/**` or the script. Pages must be enabled once under Settings, Pages, Source: GitHub Actions.
+`scripts/build-index.mjs` reads `.claude-plugin/marketplace.json` and each `plugins/<name>/.claude-plugin/plugin.json` and writes `site/`. Fields from `plugin.json` win over the catalog entry. The `pages` workflow builds and deploys on changes to any indexed source: the catalog, plugins, curated data, site sources, scripts, the lockfile and the workflow itself (`scripts/lib/source-globs.mjs` is the one list). The catalog search feature is specified in [specs/SPEC-2026-10-14-catalog-search.md](../specs/SPEC-2026-10-14-catalog-search.md). Pages must be enabled once under Settings, Pages, Source: GitHub Actions.
 
 ## Sections
 

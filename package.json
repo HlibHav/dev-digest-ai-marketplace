@@ -1,0 +1,23 @@
+{
+  "name": "dev-digest-ai-marketplace",
+  "private": true,
+  "type": "module",
+  "description": "Build tooling and tests for the dev-digest-ai-marketplace catalog site.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node scripts/build-index.mjs",
+    "test": "node --test \"test/unit/**/*.test.mjs\" \"test/integration/**/*.test.mjs\"",
+    "test:unit": "node --test \"test/unit/**/*.test.mjs\"",
+    "test:integration": "node --test \"test/integration/**/*.test.mjs\"",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.64.0",
+    "esbuild": "0.28.2",
+    "minisearch": "7.2.0"
+  }
+}

@@ -1,96 +1,84 @@
 #!/usr/bin/env node
-// Builds site/index.json and site/index.html from the catalog and each plugin.json.
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+// Builds the whole site into <out>: index.json (the catalog index), index.html (the static list, readable
+// without JavaScript), assets/ (hashed JS and CSS) and licenses.txt.
+// Usage: node scripts/build-index.mjs [--root <dir>] [--out <dir>]
+// Defaults: --root is the repository root, --out is <root>/site.
+// Env: INDEX_BUDGET_GZIP_BYTES and JS_BUDGET_GZIP_BYTES override the size budgets; SITE_FAKE_FX=1 (tests only)
+// swaps the WebGPU renderer for a test double.
+import { createHash } from 'node:crypto';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { BuildError } from './lib/errors.mjs';
+import { buildIndex } from './lib/index-builder.mjs';
+import { bundleSite, loadCurated } from './lib/bundle.mjs';
+import { checkJsBudget } from './lib/budget-js.mjs';
+import { checkEffectsChunks } from './lib/effects-scan.mjs';
+import { CSP } from './lib/csp.mjs';
+import { gzipBytes } from './lib/budget.mjs';
+import { renderPage } from './lib/render/page.mjs';
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const MARKETPLACE = 'dev-digest-ai-marketplace';
-const ADD_CMD = `/plugin marketplace add HlibHav/${MARKETPLACE}`;
+const USAGE = 'usage: node scripts/build-index.mjs [--root <dir>] [--out <dir>]';
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-function readJson(rel) {
-  try {
-    return JSON.parse(readFileSync(join(root, rel), 'utf8'));
-  } catch (e) {
-    console.error(`build-index: ${rel}: ${e.message}`);
-    process.exit(1);
-  }
+function fail(message, code = 1) {
+  console.error(`build-index: ${message}`);
+  process.exit(code);
 }
-const bad = (msg) => {
-  console.error(`build-index: ${msg}`);
-  process.exit(1);
-};
 
-const catalog = readJson('.claude-plugin/marketplace.json');
-if (!Array.isArray(catalog.plugins)) bad('.claude-plugin/marketplace.json: "plugins" must be an array');
+function parseArgs(argv) {
+  const opts = { root: repoRoot, out: null };
+  for (let i = 0; i < argv.length; i += 1) {
+    const a = argv[i];
+    if (a === '--root' || a === '--out') {
+      const v = argv[i + 1];
+      if (v === undefined || v.startsWith('--')) fail(`${a} needs a directory\n${USAGE}`, 2);
+      opts[a.slice(2)] = resolve(v);
+      i += 1;
+    } else {
+      fail(`unknown argument "${a}"\n${USAGE}`, 2);
+    }
+  }
+  opts.out ??= join(opts.root, 'site');
+  return opts;
+}
 
-const plugins = catalog.plugins.map((entry) => {
-  if (typeof entry?.name !== 'string' || typeof entry.source !== 'string') bad('catalog entry needs string name and source');
-  const manifest = readJson(`${entry.source.replace(/^\.\//, '')}/.claude-plugin/plugin.json`);
-  if (typeof manifest.version !== 'string') bad(`${entry.name}: plugin.json has no version`);
-  const deps = (manifest.dependencies ?? []).map((d) => (typeof d === 'string' ? d : d?.name));
-  if (deps.some((d) => typeof d !== 'string')) bad(`${entry.name}: malformed dependencies`);
-  return {
-    name: entry.name,
-    version: manifest.version,
-    description: manifest.description ?? entry.description ?? '',
-    category: entry.category ?? '',
-    tags: Array.isArray(entry.tags) ? entry.tags : [],
-    dependencies: deps,
-    install: `/plugin install ${entry.name}@${MARKETPLACE}`,
-  };
-});
+function budgetFromEnv(name) {
+  const raw = process.env[name];
+  if (raw === undefined || raw === '') return undefined;
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n <= 0) fail(`${name} must be a positive integer`);
+  return n;
+}
 
-const esc = (s) =>
-  String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const { root, out } = parseArgs(process.argv.slice(2));
+const jsBudget = budgetFromEnv('JS_BUDGET_GZIP_BYTES');
 
-const cards = plugins
-  .map(
-    (p) => `    <li class="card">
-      <h2>${esc(p.name)} <span class="ver">v${esc(p.version)}</span></h2>
-      <p>${esc(p.description)}</p>
-      <p class="meta">${p.category ? `Category: ${esc(p.category)}. ` : ''}${
-        p.dependencies.length ? `Depends on: ${p.dependencies.map(esc).join(', ')}.` : 'No dependencies.'
-      }</p>
-      <pre><code>${esc(p.install)}</code></pre>
-    </li>`,
-  )
-  .join('\n');
+// Everything is computed first; files are written only when all of it has succeeded.
+let files;
+let summary;
+try {
+  loadCurated(root);
+  const { index, json } = buildIndex({ root, indexBudgetGzipBytes: budgetFromEnv('INDEX_BUDGET_GZIP_BYTES') });
+  const site = await bundleSite({ root });
+  const core = checkJsBudget(site.metafile, site.contents, jsBudget === undefined ? {} : { failBytes: jsBudget });
+  const effectChunks = site.effects.map((path) => ({ path, text: site.contents.get(path).toString('utf8') }));
+  checkEffectsChunks(effectChunks);
+  const version = createHash('sha256').update(json).digest('hex').slice(0, 8);
+  const html = renderPage({ index, assets: { css: site.css, js: site.js, indexUrl: `index.json?v=${version}` }, csp: CSP });
+  files = new Map([...site.contents, ['index.json', Buffer.from(json)], ['index.html', Buffer.from(html)]]);
+  if (core.warning) console.error(`build-index: warning: ${core.warning}`);
+  const effectsBytes = effectChunks.reduce((n, f) => n + gzipBytes(f.text), 0);
+  summary = `build-index: wrote ${files.size} files (${index.plugins.length} plugins, ${index.artifacts.length} artifacts); core JS ${core.bytes} bytes gzipped, effects JS ${effectsBytes} bytes gzipped`;
+} catch (e) {
+  if (e instanceof BuildError) fail(e.message);
+  throw e;
+}
 
-const html = `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${esc(MARKETPLACE)}</title>
-  <style>
-    :root { color-scheme: light dark; --bg: #fff; --fg: #1a1a1a; --muted: #555; --line: #d0d0d0; --code: #f3f3f3; --accent: #0b5cad; }
-    @media (prefers-color-scheme: dark) { :root { --bg: #121212; --fg: #ececec; --muted: #a8a8a8; --line: #3a3a3a; --code: #1e1e1e; --accent: #7db7f5; } }
-    body { margin: 0 auto; max-width: 48rem; padding: 1rem; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, sans-serif; }
-    a { color: var(--accent); }
-    ul { list-style: none; padding: 0; display: grid; gap: 1rem; }
-    .card { border: 1px solid var(--line); border-radius: 8px; padding: 0 1rem 1rem; }
-    h2 { font-size: 1.15rem; }
-    .ver, .meta { color: var(--muted); font-size: .9rem; font-weight: normal; }
-    pre { margin: .5rem 0 0; padding: .6rem .8rem; background: var(--code); border-radius: 6px; overflow-x: auto; }
-  </style>
-</head>
-<body>
-  <main>
-    <h1>${esc(MARKETPLACE)}</h1>
-    <p>${esc(catalog.description ?? '')}</p>
-    <h2>Add the marketplace</h2>
-    <pre><code>${esc(ADD_CMD)}</code></pre>
-    <h2>Plugins</h2>
-    <ul>
-${cards}
-    </ul>
-  </main>
-</body>
-</html>
-`;
-
-mkdirSync(join(root, 'site'), { recursive: true });
-writeFileSync(join(root, 'site/index.json'), JSON.stringify(plugins, null, 2) + '\n');
-writeFileSync(join(root, 'site/index.html'), html);
-console.log(`build-index: wrote site/index.json and site/index.html (${plugins.length} plugins)`);
+rmSync(join(out, 'assets'), { recursive: true, force: true });
+for (const [path, bytes] of [...files].sort(([a], [b]) => (a < b ? -1 : 1))) {
+  const target = join(out, path);
+  mkdirSync(dirname(target), { recursive: true });
+  writeFileSync(target, bytes);
+}
+console.log(summary);

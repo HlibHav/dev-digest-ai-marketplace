@@ -1,0 +1,7 @@
+{
+  "name": "delta",
+  "version": "0.2.1",
+  "description": "A plugin whose skill description carries markup, to test escaping.",
+  "author": { "name": "fixture" },
+  "license": "MIT"
+}

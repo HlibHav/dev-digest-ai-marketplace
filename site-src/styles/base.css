@@ -1,0 +1,42 @@
+/* Base: reset, page, focus and the small utilities. Tokens come from tokens.css. */
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--page-bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--fs-md);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+  overflow-wrap: anywhere;
+}
+code, kbd, pre { font-family: var(--font-mono); }
+h1, h2, h3, h4, h5, p, ul, ol, dl, dd, fieldset { margin: 0; padding: 0; }
+ul, ol { list-style: none; }
+fieldset { border: 0; min-width: 0; }
+a { color: inherit; }
+button { font: inherit; color: inherit; }
+pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* focus: one rule for every control */
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+mark, .mark { background: var(--mark-bg); color: var(--mark-text); border-radius: 3px; padding: 0 2px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+
+/* live regions that are empty take no space */
+#status:empty, .copy-status:empty, .status:empty { display: none; }
+.notice, #status { font-size: var(--fs-sm); color: var(--text-muted); }
+#status:not(:empty) { padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card-bg); }
+/* the copy confirmation floats above the page, so it never moves the layout */
+.copy-status {
+  position: fixed; left: 50%; bottom: var(--space-5); transform: translateX(-50%); z-index: 30;
+  max-width: calc(100vw - 2 * var(--space-4)); padding: 8px 14px;
+  background: var(--text); color: var(--page-bg); border-radius: var(--radius-pill); font-size: var(--fs-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

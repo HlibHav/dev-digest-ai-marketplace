@@ -1,0 +1,7 @@
+{
+  "name": "alpha",
+  "version": "1.0.0",
+  "description": "One of everything: a skill, an agent, a command, two hooks and two MCP servers.",
+  "author": { "name": "fixture" },
+  "license": "MIT"
+}

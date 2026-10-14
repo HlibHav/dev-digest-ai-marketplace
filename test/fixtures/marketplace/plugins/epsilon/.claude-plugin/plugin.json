@@ -1,0 +1,7 @@
+{
+  "name": "epsilon",
+  "version": "1.0.0",
+  "description": "A plugin with no skills, agents, commands, hooks or servers.",
+  "author": { "name": "fixture" },
+  "license": "MIT"
+}
