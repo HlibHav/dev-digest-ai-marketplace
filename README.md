@@ -78,7 +78,7 @@ This takes effect after each teammate accepts the workspace trust dialog. To upd
 │   ├── SECURITY.md                   # threat model, reporting, incident runbook
 │   ├── RELEASES.md                   # versions, tags, rollback
 │   ├── SITE-SPEC.md                  # GitHub Pages catalog (skeleton)
-│   ├── COST-BASELINE.md              # token cost baseline (skeleton)
+│   ├── COST-BASELINE.md              # token cost baseline
 │   ├── architecture-decisions/       # ADRs
 │   └── design/                       # catalog design brief, hand-off, tokens
 ├── site-src/                         # browser code and styles bundled into the site

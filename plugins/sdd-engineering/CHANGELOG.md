@@ -2,6 +2,11 @@
 
 All notable changes to this plugin are listed here. Versions follow [SemVer](https://semver.org/); the format is close to [Keep a Changelog](https://keepachangelog.com/).
 
+## 1.0.2 — 2026-10-14
+
+### Changed
+- `spec-creator`: removed instructions that repeated its preloaded skills (the tier rules, the spec file naming and versioning, the spec-versus-code table, the diagram and untrusted-input lists). The agent now points at `engineering-paved-path:sdd-cascade`, `mermaid-diagram` and `security` for them. The prompt is 177 words shorter (3533 → 3356). Behaviour is unchanged: the spec-creator and planner evals pass 5/5 on Sonnet before and after, and the cost difference is within run-to-run noise (see `docs/COST-BASELINE.md`).
+
 ## 1.0.1 — 2026-10-14
 
 ### Security
