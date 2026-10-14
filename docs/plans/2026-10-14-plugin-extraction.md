@@ -20,6 +20,7 @@ This is the working spec for filling `plugins/*`. It covers what was picked from
 | Engineering insights (`.claude/skills/engineering-insights/`) | skill | `engineering-paved-path` | `/engineering-paved-path:engineering-insights` |
 | Review bundle (`.claude/scripts/review-bundle.sh`) | script → skill | `engineering-paved-path` | `/engineering-paved-path:review-bundle` |
 | Agent guards (`.claude/hooks/agent-write-scope.py`, `agent-bash-allowlist.py`) | hooks → one script | `engineering-paved-path` (canonical), symlinked | `scripts/agent-guard.py` |
+| Done gate (generalized from the owner's global `/verify` practice) | skill | `engineering-paved-path` | `/engineering-paved-path:verify-done` |
 
 Not selected: `brainstorm`, `test-writer` (paused in DevDigest by its own ADR), `security-reviewer`, `doc-writer`, `pr-self-review`, `onion-architecture`, `frontend-ui-architecture`, the DevDigest product skills and every third-party skill in `skills-lock.json`. Those are DevDigest's own rules or someone else's work. Section 4 says how the shipped components cope without them.
 
@@ -91,7 +92,7 @@ Plugin level: `sdd-engineering → {engineering-paved-path, research-tools, arch
 | planner, implementer | `pr-self-review` routing table | Replaced by: the plan names the project's skills per step; the planner discovers them from `.claude/skills/` and the project's CLAUDE.md. |
 | run-plan | `security-reviewer` | Optional: use a project agent named `security-reviewer` if present, else the built-in `/security-review`. |
 | run-plan | `/code-review`, `/worktree-session`, `doc-writer`, `test-writer` | `/code-review` is built in and kept. Worktree setup becomes "a feature branch or worktree". `doc-writer` and `test-writer` are dropped; implementers write red-first tests (DevDigest's current mode). |
-| researcher | `mcp__notebooklm-mcp__*` tools, `nlm login`, `~/.claude/rules/research-gate.md` | NotebookLM is optional, granted by the server pattern `mcp__notebooklm-mcp`. The research gate is restated inside the agent. No absolute path. |
+| researcher | `mcp__notebooklm-mcp__*` tools, `nlm login`, `~/.claude/rules/research-gate.md` | NotebookLM is optional: the agent's `tools` list names the 19 NotebookLM tools it may use (query, research, create, add; no delete, share or studio tools), and without that server they grant nothing. The research gate is restated inside the agent. No absolute path. |
 | workflow-retro | `collect.py`, `docs/retros/ledger.md`, `/skill-creator` | Script ships under the skill, called as `python3 ${CLAUDE_SKILL_DIR}/scripts/collect.py`. Ledger path is the project's `docs/retros/ledger.md`, created on first use. `/skill-creator` named as optional. |
 | run-plan | `../decisions/`, `CLAUDE.local.md`, root CLAUDE.md Check table, `origin/main` | ADRs → `docs/architecture-decisions/` (or the project's declared folder). Checks → the project's CLAUDE.md/AGENTS.md check section. Base → `origin/HEAD`. Machine-local file mentioned only as "if present". |
 
@@ -110,7 +111,8 @@ Guard (`agent-guard.py`) contract:
 - Invoked from a plugin `hooks.json` as PreToolUse, matcher `Write|Edit|MultiEdit|NotebookEdit|Bash`, with `--agent <name>=<profile>` pairs. It matches `agent_type` against `<plugin>:<name>` and bare `<name>`. Any other agent or the main session: exit 0, no output.
 - Profiles: `readonly` (no writes; Bash only read-only git plus the project's listed check commands), `specs` (writes only to `specs/**/*.md` and `<dir>/specs/*.md`; no Bash), `planner` (no writes, no Bash).
 - Project check commands come from `.claude/agent-guard.json` (`{ "checkCommands": ["pnpm test", "npm run typecheck"] }`), matched as exact command prefixes. No file means git-only.
-- Shell metacharacters that chain or expand (`;`, `&&`, `||`, `|`, `` ` ``, `$(`, `>`, `<`) are denied for Bash in `readonly`.
+- For Bash in `readonly`: backticks, `$(`, `${` and newlines are denied anywhere; `;`, `&`, `|`, `<`, `>` are denied outside quotes (a quoted `git grep -nE 'a|b'` is fine).
+- Git: only read-only subcommands; `git -C` / `git -c` before the subcommand, `--output`, `-O`/`--open-files-in-pager`, `--no-index`, `--ext-diff` and `--textconv` are denied; `git branch` only lists.
 - Denials are JSON `permissionDecision: "deny"` with the reason; malformed input denies for a known agent.
 - Unit-tested in `test/unit/agent-guard.test.mjs`.
 

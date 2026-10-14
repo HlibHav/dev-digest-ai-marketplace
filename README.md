@@ -6,7 +6,7 @@ A Claude Code plugin marketplace with the reusable harness extracted from DevDig
 
 | Plugin | Purpose | Depends on |
 |---|---|---|
-| `engineering-paved-path` | Shared engineering practices: verification gate, test-first done, scope discipline. | none |
+| `engineering-paved-path` | Shared engineering practices: done gate, spec-tier guide, module insights, review bundle and the agent guard script. | none |
 | `research-tools` | Read-only researcher agent that answers a concrete question from the repo or the web with evidence. | none |
 | `architecture-review` | Independent read-only architecture reviewer that checks a diff against layer boundaries. | none |
 | `sdd-engineering` | Spec-driven workflow: idea to spec to plan, delegating research and architecture review. | `engineering-paved-path`, `research-tools`, `architecture-review` (all `~1.0.0`) |

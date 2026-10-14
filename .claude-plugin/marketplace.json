@@ -6,7 +6,7 @@
     {
       "name": "engineering-paved-path",
       "source": "./plugins/engineering-paved-path",
-      "description": "Shared engineering practices: verification gate, test-first done, scope discipline.",
+      "description": "Shared engineering practices: done gate, spec-tier guide, module insights, review bundle and the agent guard script.",
       "category": "engineering",
       "tags": ["practices", "verification"]
     },

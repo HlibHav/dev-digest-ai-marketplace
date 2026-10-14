@@ -1,6 +1,6 @@
 # engineering-paved-path
 
-Shared engineering practices: verification gate, test-first done, scope discipline. It also carries the spec-tier scorecard, module-local insights, the numbered-hunk review bundle and the guard script that the other plugins' agent hooks call.
+Shared engineering practices: done gate, spec-tier guide, module insights, review bundle and the agent guard script. The guard is called by the other plugins' agent hooks.
 
 ## Components
 
