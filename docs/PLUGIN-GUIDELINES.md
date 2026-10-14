@@ -13,10 +13,15 @@ plugins/<name>/
 ├── hooks/hooks.json
 ├── .mcp.json
 ├── scripts/
-└── README.md
+├── README.md
+├── CHANGELOG.md
+├── COMPATIBILITY.md
+└── LICENSE
 ```
 
-- `README.md` is required.
+- `README.md`, `CHANGELOG.md`, `COMPATIBILITY.md` and `LICENSE` are required. `check-repo.mjs` fails without them.
+- The first `## x.y.z` heading of `CHANGELOG.md` equals the `version` in `plugin.json`. Bullets under the heading feed the catalog site.
+- `COMPATIBILITY.md` contains a line such as `Claude Code >=2.1.110`. The site shows it. Only claim a minimum you have tested or can support from the documentation; write "tested on <version>" for the rest.
 - `.claude-plugin/` holds `plugin.json` and nothing else.
 - Component paths in manifests start with `./` and stay inside the plugin root.
 
@@ -26,7 +31,8 @@ Claude Code copies an installed plugin to `~/.claude/plugins/cache/<marketplace>
 
 - Never write `../`. A path like `../shared/x.md` works from a local checkout and breaks for every real user.
 - Never write an absolute path (a user-home or Windows drive path). `check-repo.mjs` rejects them.
-- To share a file between two plugins, put a symlink inside the plugin that points at the shared file in this repo. The target is dereferenced into the cache. A symlink must not leave the repo.
+- To share a file between two plugins, ship a real copy in each plugin that needs it. Do not use a symlink: `check-repo.mjs` rejects symlinks under `plugins/`, and an installed plugin must work from its own directory. Pick one canonical copy and let `check-repo.mjs` compare the others byte for byte, as it does for `agent-guard.py` (canonical in `engineering-paved-path`).
+- Shared skills are different: they live once, in one plugin, and other plugins depend on it. An agent in another plugin names them in `skills:` with the namespace (`engineering-paved-path:security`).
 
 Variables, for use in hook commands, MCP configs and skill content:
 
@@ -68,7 +74,9 @@ Do not reference another plugin's component by a short name; use the full namesp
 ## Versions and dependencies
 
 - Set `version` only in `plugin.json`. If a catalog entry also sets it, `plugin.json` wins silently and the two drift.
-- Dependencies are `{ "name": "...", "version": "~1.0.0" }`. Always a range, always a catalog plugin, always with a release tag.
+- Dependencies are `{ "name": "...", "version": "^1.0.0" }`, the object form. Always a range, always a catalog plugin, always with a release tag. The string form `name@marketplace@^1.0.0` silently ignores the range on Claude Code 2.1.296, so use the object form. `check-repo.mjs` rejects the string form and requires a `^` range; see [the dependency ADR](architecture-decisions/2026-10-14-plugin-dependency-form-and-ranges.md).
+- `dependencies` (a hard requirement, checked when the plugin loads) and an agent's `skills:` frontmatter (which skills are injected into that agent at start) are two mechanisms. A plugin whose agent preloads `other-plugin:skill` must also depend on `other-plugin`.
+- A plugin keeps only the dependencies it needs. Skills an agent might use are left to the `Skill` tool, not declared.
 - Pre-releases need an opt-in range such as `^2.0.0-0`.
 
 ## npm dependencies
@@ -86,3 +94,7 @@ Claude Code installs a plugin's npm dependencies automatically only when the plu
 ## Description honesty
 
 The `description` in `plugin.json` and the catalog must match behaviour. A plugin that says "read-only reviewer" must not carry a hook that writes files.
+
+## README content
+
+Each plugin README covers, in this order: purpose (matching `plugin.json`), what it provides (table with namespaced names), quick start, usage with example prompts and what comes back, dependencies and what breaks without them, what the project must declare and what happens when it does not, hooks (event, matcher, what is allowed and denied, which agents), external tools, compatibility, troubleshooting, local development, versioning, provenance. Agents must never guess a missing project fact; say in the README that they ask or report it as unverifiable.

@@ -1,5 +1,18 @@
 # Plan: extract the DevDigest harness into the four plugins
 
+## Update 2026-10-14 (post-review)
+
+The body below is the plan as written before the plugins were filled. What changed after review and testing on Claude Code 2.1.296; where the two disagree, this section wins:
+
+- **Ranges are `^1.0.0`, not `~1.0.0`**, in the object form `{ "name", "version" }`. The string form drops the range on 2.1.296 (see `docs/architecture-decisions/2026-10-14-plugin-dependency-form-and-ranges.md`).
+- **`architecture-review` is no longer dependency-free.** It depends on `engineering-paved-path` `^1.0.0`, because its agent preloads `engineering-paved-path:architecture-boundaries`.
+- **Real copies, not symlinks.** `scripts/agent-guard.py` is a byte-identical copy in `architecture-review` and `sdd-engineering`; `engineering-paved-path` holds the canonical file. `scripts/check-repo.mjs` rejects symlinks under `plugins/` and compares the copies.
+- **Three new shared skills in `engineering-paved-path`:** `architecture-boundaries`, `security` and `mermaid-diagram`. The project-specific architecture skills named as "not selected" below are replaced by `architecture-boundaries`, which follows the consuming project's own rules first.
+- **Agents preload shared skills through `skills:`**, namespaced as `engineering-paved-path:<skill>`: `spec-creator` (`sdd-cascade`, `security`, `mermaid-diagram`), `implementation-planner` and `implementer` (`architecture-boundaries`, `security`), `architecture-reviewer` (`architecture-boundaries`). Proven in experiment 2 of the dependency ADR.
+- **Versions are `1.0.0`**, not `0.1.0`, and every plugin has `CHANGELOG.md`, `COMPATIBILITY.md` (`Claude Code >=2.1.110`) and `LICENSE`. The 1.0.0 release is prepared and not yet tagged.
+- **Evals** for `sdd-engineering` live in `plugins/sdd-engineering/evals/` and run with `node scripts/run-evals.mjs`.
+
+
 Status: ready · Date: 2026-10-14 · Source repo: DevDigest (`HlibHav/dev-digest`), `.claude/` at `main` 45bc971.
 
 This is the working spec for filling `plugins/*`. It covers what was picked from DevDigest, what each plugin ships, how the plugins depend on each other, the transitive dependencies the picked components drag in and what happens to each, the rules for removing DevDigest-specific paths, and what every plugin README must say.
