@@ -1,6 +1,6 @@
 # Plugin guidelines
 
-Authoring rules for plugins in this repo. [CONTRIBUTING.md](../CONTRIBUTING.md) is the short path; this page is the reasoning. Source: `docs/research/2026-10-14_marketplace-repo-structure.md`.
+Authoring rules for plugins in this repo. [CONTRIBUTING.md](../CONTRIBUTING.md) is the short path; this page is the reasoning. Source: `docs/temp/2026-10-14_marketplace-repo-structure.md`.
 
 ## Layout
 

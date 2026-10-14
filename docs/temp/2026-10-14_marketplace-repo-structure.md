@@ -11,7 +11,7 @@ Items marked **(inference)** are design conclusions, not documented behaviour.
 |---|---|---|
 | Release tags | git tag `<plugin>--v<semver>` (e.g. `sdd-engineering--v1.0.0`) created with `claude plugin tag --push`; the GitHub Release is titled `<plugin>@<semver>` | Dependency ranges resolve only against `--v` tags |
 | Main protection | Ruleset requiring code-owner review, with admin bypass | A sole owner cannot approve their own PR |
-| Research location | `docs/research/` in this repo | New authors see where the rules come from |
+| Research location | `docs/temp/` in this repo, deleted once the plugins are built | Working notes, not a permanent rule source |
 
 ## 1. marketplace.json
 

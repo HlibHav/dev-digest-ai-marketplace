@@ -90,7 +90,7 @@ function walk(dir) {
       continue;
     }
     if (d.isDirectory()) {
-      if (SKIP_DIRS.has(d.name) || rel === 'docs/research') continue;
+      if (SKIP_DIRS.has(d.name) || rel === 'docs/temp') continue;
       walk(full);
     } else if (d.isFile()) {
       const buf = readFileSync(full);

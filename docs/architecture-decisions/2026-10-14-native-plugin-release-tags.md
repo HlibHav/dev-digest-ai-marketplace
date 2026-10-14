@@ -38,5 +38,5 @@ tag name; `claude plugin list` in a consumer shows no `Requires ...` error.
 
 ## More Information
 
-- Research: `docs/research/2026-10-14_marketplace-repo-structure.md` (sections 3, 4)
+- Research: `docs/temp/2026-10-14_marketplace-repo-structure.md` (sections 3, 4)
 - https://code.claude.com/docs/en/plugins/dependencies

@@ -1,6 +1,6 @@
 # Security
 
-This page is owned by a code owner (see `CODEOWNERS`). Source: `docs/research/2026-10-14_marketplace-repo-structure.md`, section 8.
+This page is owned by a code owner (see `CODEOWNERS`). Source: `docs/temp/2026-10-14_marketplace-repo-structure.md`, section 8.
 
 ## Threat model
 
