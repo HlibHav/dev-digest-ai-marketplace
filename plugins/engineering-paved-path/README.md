@@ -85,12 +85,14 @@ The guard acts only for the agents named in `--agent <name>=<profile>` pairs on 
 | Profile | Writes | Bash |
 |---|---|---|
 | `readonly` | denied | read-only git and your `checkCommands` only. `;`, `&`, `\|`, `<` and `>` outside quotes are denied. Backticks, `$(`, `${` and newlines are denied anywhere. |
-| `specs` | only Markdown under a `specs/` directory inside the project | denied |
+| `specs` | only Markdown under a `specs/` directory inside the project, at any depth | denied |
 | `planner` | denied | denied |
 
 Allowed git subcommands: `diff`, `log`, `show`, `status`, `blame`, `merge-base`, `rev-parse`, `ls-files`, `grep`, `cat-file`, `branch` (listing only), `describe`, `shortlog`. Denied: options before the subcommand (`git -C`, `git -c`), `--output`, `-O`, `--open-files-in-pager`, `--no-index`, `--ext-diff`, `--textconv`.
 
-For a guarded agent, malformed hook input is denied. The script makes no network calls and writes nothing. Commands you list in `checkCommands` run your own project code, so list only commands you trust on the branch under review.
+Where the guard cannot tell who is calling, it fails open: when stdin is not a JSON object, or the input has no string `agent_type` (the main session, and any agent not named on the command line), it exits 0 silently and the tool call goes ahead. It denies malformed input only once it knows the caller is guarded: a guarded agent whose input has no string `tool_name` or no object `tool_input`, or a Bash call with no string `command`. The script makes no network calls and writes nothing. Commands you list in `checkCommands` run your own project code, so list only commands you trust on the branch under review.
+
+A `specs` directory counts at any depth inside the project (`specs/a.md`, `packages/api/specs/a.md`), as long as the path stays inside the project and has no `..`.
 
 `architecture-review` and `sdd-engineering` each ship a byte-identical copy of the script, because a plugin is installed by copying its directory. `scripts/check-repo.mjs` in the marketplace repo fails when a copy drifts.
 

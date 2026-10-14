@@ -85,7 +85,7 @@ One `PreToolUse` hook, matcher `Write|Edit|MultiEdit|NotebookEdit|Bash`, running
 - Writes are denied.
 - Bash is allowed only for read-only git (`diff`, `log`, `show`, `status`, `blame`, `merge-base`, `rev-parse`, `ls-files`, `grep`, `cat-file`, `branch` listing, `describe`, `shortlog`) and for the exact command prefixes in `checkCommands`.
 - `;`, `&`, `|`, `<`, `>` outside quotes, and backticks, `$(`, `${` and newlines anywhere, are denied. Options before the git subcommand (`-C`, `-c`) and `--output`, `-O`, `--no-index`, `--ext-diff`, `--textconv` are denied.
-- Input with no `agent_type` (the main session, other agents) passes silently. Malformed input for the reviewer is denied.
+- Where the guard cannot tell who is calling, it fails open: when stdin is not a JSON object, or the input has no string `agent_type` (the main session, and any agent not named on the command line), it exits 0 silently and the tool call goes ahead. It denies malformed input only once it knows the caller is guarded: a guarded agent whose input has no string `tool_name` or no object `tool_input`, or a Bash call with no string `command`.
 
 The hook reads the tool input and one local config file, writes nothing and makes no network calls.
 
