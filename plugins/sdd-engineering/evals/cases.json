@@ -1,0 +1,226 @@
+{
+  "description": "Behavior and negative evals for the sdd-engineering workflow. Run with scripts/run-evals.mjs. See evals/README.md.",
+  "fixture": "fixtures/tiny-app",
+  "defaults": {
+    "maxTurns": 12,
+    "maxBudgetUsd": 0.5
+  },
+  "cases": [
+    {
+      "id": "skills-load-clean",
+      "kind": "negative",
+      "describes": "Namespaced skills and agents of all four plugins load, with nothing on stderr and no plugin errors.",
+      "prompt": "Reply with the single word OK. Do not use any tool.",
+      "maxTurns": 2,
+      "maxBudgetUsd": 0.15,
+      "assertions": {
+        "initHasSkills": [
+          "sdd-engineering:run-plan",
+          "sdd-engineering:workflow-retro",
+          "engineering-paved-path:sdd-cascade"
+        ],
+        "initHasAgents": [
+          "sdd-engineering:spec-creator",
+          "sdd-engineering:implementation-planner",
+          "sdd-engineering:implementer",
+          "sdd-engineering:plan-verifier",
+          "architecture-review:architecture-reviewer",
+          "research-tools:researcher"
+        ],
+        "initNoPluginErrors": true,
+        "stderrNotRegex": "(?i)warn|invalid|failed to load|unknown skill|error",
+        "notDispatched": [
+          "*"
+        ],
+        "noFilesChanged": true
+      }
+    },
+    {
+      "id": "irrelevant-question-no-sdd",
+      "kind": "negative",
+      "describes": "A plain code question does not start any SDD agent or skill and writes nothing.",
+      "prompt": "What does double(2) return in src/double.js? One short sentence.",
+      "maxTurns": 6,
+      "maxBudgetUsd": 0.25,
+      "assertions": {
+        "notDispatched": [
+          "sdd-engineering:*",
+          "architecture-review:*",
+          "research-tools:*"
+        ],
+        "skillNotInvoked": [
+          "sdd-engineering:run-plan",
+          "sdd-engineering:workflow-retro"
+        ],
+        "noFilesChanged": true,
+        "finalTextRegex": "\\b4\\b"
+      }
+    },
+    {
+      "id": "summarize-repo-no-retro",
+      "kind": "negative",
+      "describes": "A repository summary does not run workflow-retro (manual-only skill) or any SDD agent.",
+      "prompt": "Summarize this repo in three sentences.",
+      "maxTurns": 8,
+      "maxBudgetUsd": 0.25,
+      "assertions": {
+        "skillNotInvoked": [
+          "sdd-engineering:workflow-retro",
+          "sdd-engineering:run-plan"
+        ],
+        "notDispatched": [
+          "sdd-engineering:*"
+        ],
+        "noFilesChanged": true
+      }
+    },
+    {
+      "id": "spec-creator-asks-clarifications",
+      "kind": "behavior",
+      "describes": "A vague request makes spec-creator run and the session reports its blocking questions instead of inventing answers; nothing is approved.",
+      "prompt": "Use the sdd-engineering:spec-creator subagent for this. Today's date is 2026-10-14. Use the Lightweight SDD tier. Feature request: add a clamp helper to the tiny app. I haven't thought about the details. Do not answer spec-creator's questions yourself and do not guess: if it returns questions, show them to me verbatim and stop.",
+      "maxTurns": 14,
+      "maxBudgetUsd": 0.6,
+      "assertions": {
+        "subagentDispatched": "sdd-engineering:spec-creator",
+        "notDispatched": [
+          "sdd-engineering:implementation-planner",
+          "sdd-engineering:implementer"
+        ],
+        "finalTextRegex": "(?i)\\?|needs-answers|NEEDS CLARIFICATION|question",
+        "fileNotContainsRegex": [
+          {
+            "glob": "specs/*.md",
+            "regex": "(?i)status:\\s*\\**\\s*approved"
+          }
+        ],
+        "fileNotCreatedGlob": "src/**"
+      }
+    },
+    {
+      "id": "spec-creator-writes-spec",
+      "kind": "behavior",
+      "describes": "With the requirements settled, spec-creator writes a draft spec with a spec id and EARS acceptance criteria, and the spec states behavior only: no code, no file paths.",
+      "prompt": "Use the sdd-engineering:spec-creator subagent to write a spec. Today's date is 2026-10-14. Tier: Lightweight SDD (name it in the brief; the cascade text is not available, this tier is final). Feature: clamp(value, min, max) returns value limited to the inclusive range [min, max]. Settled decisions, do not ask about them: all three arguments are finite numbers; if min is greater than max the call is an error that says so; NaN or non-number input is an error; there is one package, so the spec goes in the root specs folder; no performance requirements; no external inputs. Write the spec file and report where it is.",
+      "maxTurns": 16,
+      "maxBudgetUsd": 0.8,
+      "assertions": {
+        "subagentDispatched": "sdd-engineering:spec-creator",
+        "notDispatched": [
+          "sdd-engineering:implementation-planner",
+          "sdd-engineering:implementer"
+        ],
+        "fileCreatedGlob": "specs/*.md",
+        "fileContainsRegex": [
+          {
+            "glob": "specs/*.md",
+            "regex": "SPEC-\\d{4}-\\d{2}-\\d{2}-"
+          },
+          {
+            "glob": "specs/*.md",
+            "regex": "\\bAC-1\\b"
+          },
+          {
+            "glob": "specs/*.md",
+            "regex": "\\b(WHEN|IF|WHILE|WHERE)\\b[^\\n]*\\bshall\\b|\\bThe system shall\\b"
+          },
+          {
+            "glob": "specs/*.md",
+            "regex": "(?i)status:\\s*\\**\\s*draft"
+          }
+        ],
+        "fileNotContainsRegex": [
+          {
+            "glob": "specs/*.md",
+            "regex": "(?m)^```(js|javascript|ts|typescript|python|py|bash|sh)\\b"
+          },
+          {
+            "glob": "specs/*.md",
+            "regex": "\\b(src|test)/[\\w./-]+\\.(m?js|ts)\\b"
+          },
+          {
+            "glob": "specs/*.md",
+            "regex": "(?i)status:\\s*\\**\\s*approved"
+          }
+        ],
+        "fileNotCreatedGlob": "{src,docs/plans}/**"
+      }
+    },
+    {
+      "id": "planner-uses-existing-spec",
+      "kind": "behavior",
+      "describes": "The planner reads the seeded approved spec, traces its plan to the spec's own AC ids only, invents no AC-4 or later, and does not touch the spec.",
+      "setup": {
+        "files": {
+          "specs/2026-10-14-clamp.md": "# Clamp helper\n\nSpec ID: SPEC-2026-10-14-clamp\nStatus: approved\nTier: Lightweight SDD\nPackages: tiny-app (single package, repository root)\n\n## Goal\n\nCallers can limit a number to an inclusive range.\n\n## Acceptance criteria\n\n- AC-1 WHEN `clamp(value, min, max)` is called with finite numbers and min <= max, the system shall return value limited to the inclusive range [min, max]. - proof: red-first unit - verify: `clamp(5,0,10)` is 5, `clamp(-3,0,10)` is 0, `clamp(42,0,10)` is 10.\n- AC-2 IF min is greater than max, THEN the system shall throw an error whose message says that min is greater than max. - proof: red-first unit - verify: `clamp(5,10,0)` throws and the message matches /min.*greater than.*max/i.\n- AC-3 IF any argument is NaN or is not a number, THEN the system shall throw an error whose message names the invalid argument. - proof: red-first unit - verify: `clamp(NaN,0,10)` and `clamp(\"5\",0,10)` throw.\n\n## Non-goals\n\nNo performance requirements. No support for non-numeric ordered types.\n\n## Non-functional requirements\n\nNone beyond the existing module: no I/O, no network, no external inputs.\n\n## Contracts\n\n`clamp(value, min, max)` is a public function of the module, next to `double`.\n\n## Traceability\n\n| AC | proof | verify | step | test | commit |\n|---|---|---|---|---|---|\n| AC-1 | red-first unit | values in, below and above the range | - | - | - |\n| AC-2 | red-first unit | min greater than max throws | - | - | - |\n| AC-3 | red-first unit | NaN and a string throw | - | - | - |\n\n## Changelog\n\n| date | change | why |\n|---|---|---|\n| 2026-10-14 | created and approved | fixture |\n"
+        }
+      },
+      "prompt": "Use the sdd-engineering:implementation-planner subagent. Execution mode: single-agent. Input spec: specs/2026-10-14-clamp.md (approved). Save the plan it returns to docs/plans/2026-10-14-clamp.md. Do not implement anything and do not change the spec.",
+      "maxTurns": 16,
+      "maxBudgetUsd": 0.8,
+      "assertions": {
+        "subagentDispatched": "sdd-engineering:implementation-planner",
+        "notDispatched": [
+          "sdd-engineering:spec-creator",
+          "sdd-engineering:implementer"
+        ],
+        "fileCreatedGlob": "docs/plans/*.md",
+        "fileContainsRegex": [
+          {
+            "glob": "docs/plans/*.md",
+            "regex": "\\bAC-1\\b"
+          },
+          {
+            "glob": "docs/plans/*.md",
+            "regex": "\\bAC-2\\b"
+          },
+          {
+            "glob": "docs/plans/*.md",
+            "regex": "\\bAC-3\\b"
+          },
+          {
+            "glob": "docs/plans/*.md",
+            "regex": "npm test"
+          }
+        ],
+        "fileNotContainsRegex": [
+          {
+            "glob": "docs/plans/*.md",
+            "regex": "\\bAC-([4-9]|\\d{2,})\\b"
+          }
+        ],
+        "fileUnchanged": "specs/2026-10-14-clamp.md",
+        "fileNotCreatedGlob": "src/clamp*"
+      }
+    },
+    {
+      "id": "run-plan-chain",
+      "kind": "behavior",
+      "expensive": true,
+      "describes": "/sdd-engineering:run-plan hands the lane to implementer, then plan-verifier, then the architecture reviewer, and runs no spec-creator or planner.",
+      "setup": {
+        "files": {
+          ".claude/agent-guard.json": "{ \"checkCommands\": [\"npm test\"] }\n",
+          "specs/2026-10-14-clamp.md": "# Clamp helper\n\nSpec ID: SPEC-2026-10-14-clamp\nStatus: approved\nTier: Lightweight SDD\nPackages: tiny-app (single package, repository root)\n\n## Goal\n\nCallers can limit a number to an inclusive range.\n\n## Acceptance criteria\n\n- AC-1 WHEN `clamp(value, min, max)` is called with finite numbers and min <= max, the system shall return value limited to the inclusive range [min, max]. - proof: red-first unit - verify: `clamp(5,0,10)` is 5, `clamp(-3,0,10)` is 0, `clamp(42,0,10)` is 10.\n- AC-2 IF min is greater than max, THEN the system shall throw an error whose message says that min is greater than max. - proof: red-first unit - verify: `clamp(5,10,0)` throws and the message matches /min.*greater than.*max/i.\n- AC-3 IF any argument is NaN or is not a number, THEN the system shall throw an error whose message names the invalid argument. - proof: red-first unit - verify: `clamp(NaN,0,10)` and `clamp(\"5\",0,10)` throw.\n\n## Non-goals\n\nNo performance requirements. No support for non-numeric ordered types.\n\n## Non-functional requirements\n\nNone beyond the existing module: no I/O, no network, no external inputs.\n\n## Contracts\n\n`clamp(value, min, max)` is a public function of the module, next to `double`.\n\n## Traceability\n\n| AC | proof | verify | step | test | commit |\n|---|---|---|---|---|---|\n| AC-1 | red-first unit | values in, below and above the range | - | - | - |\n| AC-2 | red-first unit | min greater than max throws | - | - | - |\n| AC-3 | red-first unit | NaN and a string throw | - | - | - |\n\n## Changelog\n\n| date | change | why |\n|---|---|---|\n| 2026-10-14 | created and approved | fixture |\n",
+          "docs/plans/2026-10-14-clamp.md": "# Plan: clamp helper\n\nStatus: ready\nSpec: specs/2026-10-14-clamp.md (SPEC-2026-10-14-clamp)\nMode: single-agent\n\n## Check commands\n\n- `npm test`\n\n## Steps\n\n1. Red-first: add `test/clamp.test.js` with one test per criterion (AC-1, AC-2, AC-3); run `npm test` and see them fail because `src/clamp.js` does not exist.\n2. Implement `clamp(value, min, max)` in `src/clamp.js` (new file) until `npm test` passes (AC-1, AC-2, AC-3).\n\n## Lane A (owned paths: src/clamp.js, test/clamp.test.js)\n\nSteps 1 and 2.\n"
+        }
+      },
+      "prompt": "/sdd-engineering:run-plan docs/plans/2026-10-14-clamp.md --mode single. The user has already approved everything; if a step would ask me something, choose the recommended option and continue. Skip the security review and /code-review steps.",
+      "maxTurns": 60,
+      "maxBudgetUsd": 2.5,
+      "assertions": {
+        "skillInvoked": "sdd-engineering:run-plan",
+        "subagentDispatched": [
+          "sdd-engineering:implementer",
+          "sdd-engineering:plan-verifier",
+          "architecture-review:architecture-reviewer"
+        ],
+        "notDispatched": [
+          "sdd-engineering:spec-creator",
+          "sdd-engineering:implementation-planner"
+        ],
+        "fileCreatedGlob": "src/clamp.js"
+      }
+    }
+  ]
+}

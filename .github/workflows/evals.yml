@@ -1,0 +1,52 @@
+name: evals
+
+# Manual only: these runs call the Anthropic API and cost money. Never wire this to pull_request or push.
+on:
+  workflow_dispatch:
+    inputs:
+      cases:
+        description: "Case ids, or negative | behavior | all"
+        default: negative
+      model:
+        description: "Model for the session and every subagent"
+        default: haiku
+      repeat:
+        description: "Runs per case"
+        default: "1"
+      include_expensive:
+        description: "Also run cases marked expensive"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install the Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code@2.1.296
+      - name: Run evals
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CASES: ${{ inputs.cases }}
+          MODEL: ${{ inputs.model }}
+          REPEAT: ${{ inputs.repeat }}
+        run: |
+          test -n "$ANTHROPIC_API_KEY" || { echo "ANTHROPIC_API_KEY secret is not set"; exit 1; }
+          extra=()
+          if [ "${{ inputs.include_expensive }}" = "true" ]; then extra+=(--include-expensive); fi
+          node scripts/run-evals.mjs --cases "$CASES" --model "$MODEL" --repeat "$REPEAT" --out .tmp/evals/report.json "${extra[@]}"
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report
+          path: .tmp/evals/report.json
+          if-no-files-found: ignore
