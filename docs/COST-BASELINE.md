@@ -43,7 +43,7 @@ From the catalog's estimator (`scripts/lib/cost.mjs`: characters / 4, rounded up
 | `engineering-paved-path` | 1.0.1 | 1,036 | 6,158 |
 | `research-tools` | 1.0.1 | 128 | 1,928 |
 | `architecture-review` | 1.0.1 | 186 | 2,444 |
-| `sdd-engineering` | 1.0.1 → 1.0.2 | 1,114 | 21,687 → 21,421 |
+| `sdd-engineering` | 1.0.1 → 1.0.2 | 1,114 | 21,687 → 21,440 |
 
 Installing `sdd-engineering` pulls in all four plugins, about 2,460 always-loaded tokens.
 
@@ -53,7 +53,7 @@ Installing `sdd-engineering` pulls in all four plugins, about 2,460 always-loade
 
 **Change** (only this; same model, same routing, same cases). A read-only comparison of each agent against its preloaded skills found:
 
-- **`spec-creator`**: passages that repeat the skills: tier rules, spec file naming and versioning, the spec-versus-code table, and the diagram and untrusted-input lists. They became pointers to the skills. Everything that says what to output or where to write stayed, as did every phrase the evals assert. The prompt went from 3,533 to 3,356 words (177 fewer, about 266 tokens by the estimator).
+- **`spec-creator`**: passages that repeat the skills: tier rules, spec file naming and versioning, the spec-versus-code table, and the diagram rule. They became pointers to the skills. Everything that says what to output or where to write stayed, as did every phrase the evals assert. The rerun measured a 3,356-word prompt (177 fewer). Review then restored the untrusted-input example list, because the `security` skill does not name diff or repository content, so the shipped prompt is 3,366 words (167 fewer, about 247 tokens by the estimator).
 - **`implementation-planner`**: duplicates almost nothing. Its use of `architecture-boundaries` and `security` is already a one-line pointer, so it was left unchanged.
 - **`implementer`**: the plan named it, but the fixed scenario never runs it, so a change there could not be measured. It was left unchanged.
 
@@ -67,7 +67,7 @@ Installing `sdd-engineering` pulls in all four plugins, about 2,460 always-loade
 
 Total spend for the pass: $1.59.
 
-**Verdict: quality gate green, saving within noise.** The planner's prompt did not change and its median still moved 4%, which sets the noise floor for 5 runs. The spec-creator ranges overlap. On top of that, 266 fewer prompt tokens are worth well under a cent per run on Sonnet, so the $0.010 drop in the median is mostly noise, not the change. Passes stayed 10/10, and no new critical errors appeared. The change stays because it removes duplicated rules that could drift apart, not because of the cost. It is not claimed as a saving.
+**Verdict: quality gate green, saving within noise.** The planner's prompt did not change and its median still moved 4%, which sets the noise floor for 5 runs. The spec-creator ranges overlap. On top of that, about 250 fewer prompt tokens are worth well under a cent per run on Sonnet, so the $0.010 drop in the median is mostly noise, not the change. Passes stayed 10/10, and no new critical errors appeared. The change stays because it removes duplicated rules that could drift apart, not because of the cost. It is not claimed as a saving.
 
 What would move the number, as a next experiment: the denied Bash-heredoc save (an extra turn in 40% of planner runs) costs more than the whole prompt trim.
 

@@ -207,7 +207,8 @@ design findings and the UX proposals. Writing waits for the answers.
 - **Inputs and provenance:** every input the feature consumes carries one tag:
   `[reused: <source>]` for an output already produced elsewhere, `[deterministic: <module>]` for
   a fact computed by code with no model call, `[new: N LLM call(s)]` for a new model call.
-- **Untrusted inputs:** every input that comes from outside the operator's control and how the system must treat it.
+- **Untrusted inputs:** every input that comes from outside the operator's control (user text,
+  diff or repository content, external payloads, model output) and how the system must treat it.
 - **Workflows and module communication:** Mermaid diagrams, per the rule above.
 - **Traceability:** seed the table with one row per AC: its id, proof tag and verification
   hint, and `—` in the step, test and commit columns. The main session fills those from the
