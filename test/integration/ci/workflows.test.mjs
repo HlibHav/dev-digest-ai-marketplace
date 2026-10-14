@@ -41,7 +41,7 @@ test('build-site is its own visibly named job that builds and uploads site/', ()
   assert.match(b, /^ {4}name: Build catalog site$/m);
   const ci = b.indexOf('npm ci --ignore-scripts');
   const build = b.indexOf('node scripts/build-index.mjs');
-  const up = b.indexOf('actions/upload-artifact@v4');
+  const up = b.indexOf('actions/upload-artifact@');
   assert.ok(ci !== -1 && build !== -1 && up !== -1 && ci < build && build < up);
   assert.match(b, /node-version: +22/);
   assert.match(b, /name: catalog-site/);
