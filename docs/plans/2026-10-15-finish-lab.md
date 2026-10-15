@@ -107,4 +107,4 @@ Use an existing repo that has its own CLAUDE.md and test commands, and no local 
 - [ ] Cost experiment with baseline, quality gate and an honest result
 - [ ] Catalog update and plugin update checked separately
 - [ ] 1.1.0 behaviour confirmed by an eval
-- [ ] Stable channel returns 1.0.x and the smoke eval passes
+- [x] Stable channel returns 1.0.x and the smoke eval passes (2026-10-15, see RELEASES.md)
