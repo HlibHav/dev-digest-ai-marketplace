@@ -1,18 +1,36 @@
 // Finds the file-based artifacts of one plugin: skills, agents and commands.
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { dirname, join, relative, sep } from 'node:path';
 import { BuildError } from './errors.mjs';
 import { parseFrontmatter } from './frontmatter.mjs';
 import { agentName, commandName, skillName } from './names.mjs';
+import { PathEscapeError, assertRealInside, resolveInside } from './safe-path.mjs';
 
 const MAX_COMMAND_FALLBACK = 200;
 
 /** Path relative to the repo root with forward slashes, for messages and `source_path`. */
 export const relFromRoot = (root, abs) => relative(root, abs).split(sep).join('/');
 
-/** Reads and parses a JSON file; every failure is a BuildError naming the file. */
-export function readJsonFile(abs, rel) {
+/**
+ * Refuses a path that leaves `boundary` through a symlink (the lexical check is the caller's, see resolveInside).
+ * The failure is a BuildError naming the file, like every other build failure.
+ */
+function ensureInside(boundary, abs, rel) {
+  try {
+    assertRealInside(boundary, abs);
+  } catch (e) {
+    if (e instanceof PathEscapeError) throw new BuildError(rel, 'resolves outside its allowed directory (symlink or unreadable link)');
+    throw e;
+  }
+}
+
+/**
+ * Reads and parses a JSON file; every failure is a BuildError naming the file. `boundary` is the directory the
+ * file must really live in (symlinks resolved); the catalog and manifests are checked against the repo root.
+ */
+export function readJsonFile(abs, rel, boundary) {
   let text;
+  ensureInside(boundary, abs, rel);
   try {
     text = readFileSync(abs, 'utf8');
   } catch (e) {
@@ -30,10 +48,21 @@ export function resolveDeclaredFile(pluginDir, declared, declFile, label) {
   if (typeof declared !== 'string' || declared.trim() === '') {
     throw new BuildError(declFile, `${label} path must be a non-empty string`);
   }
-  const abs = resolve(pluginDir, declared);
-  const rel = relative(pluginDir, abs);
-  if (rel === '' || rel.startsWith('..') || isAbsolute(rel)) {
+  let abs;
+  try {
+    abs = resolveInside(pluginDir, declared);
+  } catch (e) {
+    if (e instanceof PathEscapeError) throw new BuildError(declFile, `${label} path "${declared}" points outside the plugin directory`);
+    throw e;
+  }
+  if (abs === resolveInside(pluginDir)) {
     throw new BuildError(declFile, `${label} path "${declared}" points outside the plugin directory`);
+  }
+  try {
+    assertRealInside(pluginDir, abs);
+  } catch (e) {
+    if (e instanceof PathEscapeError) throw new BuildError(declFile, `${label} path "${declared}" resolves outside the plugin directory (symlink)`);
+    throw e;
   }
   if (!existsSync(abs) || !statSync(abs).isFile()) {
     throw new BuildError(declFile, `${label} path "${declared}" does not exist`);
@@ -53,7 +82,9 @@ function nonEmptyString(v) {
   return typeof v === 'string' && v.trim() !== '' ? v.trim() : null;
 }
 
-function read(abs, rel) {
+/** Reads a text file that must really live inside `boundary` (the plugin directory). */
+function read(abs, rel, boundary) {
+  ensureInside(boundary, abs, rel);
   try {
     return readFileSync(abs, 'utf8');
   } catch (e) {
@@ -64,12 +95,13 @@ function read(abs, rel) {
 function discoverSkills(pluginDir, plugin, root) {
   const base = join(pluginDir, 'skills');
   if (!isDir(base)) return [];
+  ensureInside(pluginDir, base, relFromRoot(root, base));
   const out = [];
   for (const folder of sortedNames(base)) {
     const file = join(base, folder, 'SKILL.md');
     if (!isDir(join(base, folder)) || !isFile(file)) continue;
     const rel = relFromRoot(root, file);
-    const { data, body, hasFrontmatter } = parseFrontmatter(read(file, rel), rel);
+    const { data, body, hasFrontmatter } = parseFrontmatter(read(file, rel, pluginDir), rel);
     const description = nonEmptyString(data.description);
     if (!description) {
       throw new BuildError(
@@ -96,12 +128,13 @@ function discoverSkills(pluginDir, plugin, root) {
 function discoverAgents(pluginDir, plugin, root) {
   const base = join(pluginDir, 'agents');
   if (!isDir(base)) return [];
+  ensureInside(pluginDir, base, relFromRoot(root, base));
   const out = [];
   for (const f of sortedNames(base)) {
     const file = join(base, f);
     if (!/\.md$/i.test(f) || !isFile(file)) continue;
     const rel = relFromRoot(root, file);
-    const { data, body, hasFrontmatter } = parseFrontmatter(read(file, rel), rel);
+    const { data, body, hasFrontmatter } = parseFrontmatter(read(file, rel, pluginDir), rel);
     if (!hasFrontmatter) throw new BuildError(rel, 'agent needs frontmatter with a non-empty "description"');
     const description = nonEmptyString(data.description);
     if (!description) throw new BuildError(rel, 'agent frontmatter needs a non-empty "description"');
@@ -119,12 +152,15 @@ function discoverAgents(pluginDir, plugin, root) {
   return out;
 }
 
-function walkMarkdown(dir, prefix = '') {
+function walkMarkdown(dir, pluginDir, root, prefix = '') {
   const out = [];
   for (const entry of sortedNames(dir)) {
     const abs = join(dir, entry);
     const rel = prefix ? `${prefix}/${entry}` : entry;
-    if (isDir(abs)) out.push(...walkMarkdown(abs, rel));
+    if (isDir(abs)) {
+      ensureInside(pluginDir, abs, relFromRoot(root, abs));
+      out.push(...walkMarkdown(abs, pluginDir, root, rel));
+    }
     else if (/\.md$/i.test(entry) && isFile(abs)) out.push(rel);
   }
   return out;
@@ -133,10 +169,11 @@ function walkMarkdown(dir, prefix = '') {
 function discoverCommands(pluginDir, plugin, root) {
   const base = join(pluginDir, 'commands');
   if (!isDir(base)) return [];
-  return walkMarkdown(base).map((relInCommands) => {
+  ensureInside(pluginDir, base, relFromRoot(root, base));
+  return walkMarkdown(base, pluginDir, root).map((relInCommands) => {
     const file = join(base, ...relInCommands.split('/'));
     const rel = relFromRoot(root, file);
-    const { data, body } = parseFrontmatter(read(file, rel), rel);
+    const { data, body } = parseFrontmatter(read(file, rel, pluginDir), rel);
     const trimmed = body.trim();
     const firstLine = trimmed.split(/\r?\n/).find((l) => l.trim() !== '') ?? '';
     const description = nonEmptyString(data.description) ?? firstLine.trim().slice(0, MAX_COMMAND_FALLBACK);

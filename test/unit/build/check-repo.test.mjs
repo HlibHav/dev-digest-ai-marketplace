@@ -66,6 +66,10 @@ test('no symlinks anywhere under plugins/', () => {
   bad(run([{ name: 'a' }], link('/etc/hosts')), /plugins\/a\/link: symlinks are not allowed/);
 });
 
+test('a catalog source that climbs out of the repo with ../ is refused', () => {
+  bad(run([{ name: 'a', entry: { source: './plugins/../../elsewhere' } }]), /source \.\/plugins\/\.\.\/\.\.\/elsewhere points outside the repository/);
+});
+
 test('every agent-guard.py is byte-identical to the paved-path original', () => {
   const guard = (text) => ({ [GUARD]: text });
   const plugins = (copy) => [
