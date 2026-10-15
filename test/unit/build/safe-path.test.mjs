@@ -68,6 +68,17 @@ test('assertRealInside refuses a file symlink, a directory symlink and a danglin
   });
 });
 
+test('a not-yet-existing path under a symlinked directory that leaves the root is refused', () => {
+  withDirs((root, outside) => {
+    symlinkSync(outside, join(root, 'ld'));
+    mkdirSync(join(root, 'sub'));
+    symlinkSync(outside, join(root, 'sub', 'l2'));
+    assert.throws(() => safeResolve(root, 'ld/nonexist'), PathEscapeError);
+    assert.throws(() => safeResolve(root, 'sub/l2/new/deep'), PathEscapeError);
+    assert.equal(safeResolve(root, 'sub/new/deep'), join(root, 'sub', 'new', 'deep'), 'a plain missing path inside the root passes');
+  });
+});
+
 test('safeResolve and readTextInside combine the lexical and the symlink check', () => {
   withDirs((root, outside) => {
     writeFileSync(join(outside, 'secret.txt'), 'secret');

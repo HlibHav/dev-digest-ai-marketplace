@@ -32,6 +32,7 @@ export function loadCurated(root) {
   const texts = {};
   for (const key of CURATED_KEYS) {
     // A curated file under the root's own data/ must not be a symlink out of the root.
+    // A custom root may carry its own data/ (checked against that root); otherwise the file is the repo's own fallback.
     assertRealInside(isInside(resolve(root), paths[key]) ? resolve(root) : repoRoot, paths[key]);
     texts[key] = readFileSync(paths[key], 'utf8');
   }

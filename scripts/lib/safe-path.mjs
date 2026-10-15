@@ -1,7 +1,7 @@
 // Path containment for the build tools. Plugin directories, manifest fields and directory listings come from
 // contributor PRs, so any path built from them must stay inside the directory it is meant to live in.
 import { lstatSync, readFileSync, realpathSync } from 'node:fs';
-import { isAbsolute, relative, resolve } from 'node:path';
+import { dirname, isAbsolute, relative, resolve } from 'node:path';
 
 /** Thrown when a path escapes its allowed root, lexically (`..`, absolute) or through a symlink. */
 export class PathEscapeError extends Error {
@@ -50,11 +50,31 @@ export function assertRealInside(root, abs) {
   try {
     real = realpathSync(abs);
   } catch (e) {
-    if (e.code === 'ENOENT' && !isDanglingLink(abs)) return abs;
+    if (e.code === 'ENOENT' && !isDanglingLink(abs)) {
+      // Not there yet: its nearest existing ancestor decides, so "linkdir/new/deep" cannot slip out through a symlinked dir.
+      assertAncestorInside(realRoot, abs);
+      return abs;
+    }
     throw new PathEscapeError(realRoot, abs, `cannot be resolved (${e.code ?? e.message})`);
   }
   if (!isInside(realRoot, real)) throw new PathEscapeError(realRoot, abs, 'resolves outside the allowed root through a symlink');
   return abs;
+}
+
+function assertAncestorInside(realRoot, abs) {
+  let cur = dirname(abs);
+  for (;;) {
+    try {
+      if (!isInside(realRoot, realpathSync(cur))) throw new PathEscapeError(realRoot, abs, 'resolves outside the allowed root through a symlink');
+      return;
+    } catch (e) {
+      if (e instanceof PathEscapeError) throw e;
+      if (e.code !== 'ENOENT' && e.code !== 'ENOTDIR') throw new PathEscapeError(realRoot, abs, `cannot be resolved (${e.code ?? e.message})`);
+      const up = dirname(cur);
+      if (up === cur) throw new PathEscapeError(realRoot, abs, 'has no existing ancestor');
+      cur = up;
+    }
+  }
 }
 
 /** A symlink whose target is missing: realpath fails with ENOENT but lstat still sees the link itself. */
