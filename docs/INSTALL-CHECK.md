@@ -13,11 +13,11 @@ Whether the 1.0.x release works in a real repository that was not built with the
 | Baseline | `pnpm typecheck` clean. `pnpm test`: 121 passed and 4 failed, all 4 in `tests/services/peec-snapshot.test.ts`, which needs a git-ignored data file. |
 | Sessions | Headless `claude -p`, `--model sonnet --setting-sources project`, with `CLAUDE_CODE_SUBAGENT_MODEL=sonnet` and `_FORCE=1`. Project settings only, so the author's user-level `CLAUDE.md`, hooks and plugins stayed out. Claude Code 2.1.296. |
 | Feature | `forbiddenHitDensity(body)` in `lib/brand/forbidden-phrases.ts`: forbidden-vocabulary hits per 100 words, with unit tests. |
-| Spend | $2.35 in total: spec and plan $0.86, `run-plan` $1.04, retro and probes $0.45. |
+| Spend | $2.35 in total: spec and plan $0.86, `run-plan` $1.04, retro and probes $0.44. |
 
 ## The checks
 
-The brief has 11 points, but its full text was not available during the check. Points 1–6 are the ones the [finish-lab plan](plans/2026-10-15-finish-lab.md) quotes from the brief, and points 7–8 come from the brief's end-of-lab checklist. Points 9–11 were derived from the plugin READMEs.
+The brief has 11 points, but its full text was not available during the check. Points 1–6 are the ones the [finish-lab plan](plans/2026-10-15-finish-lab.md) quotes from the brief, and point 7 comes from the brief's end-of-lab checklist. Points 8–11 were derived from the plugin READMEs; point 8 is the runtime side of the checklist item "`sdd-engineering` uses namespaced dependencies".
 
 | # | Check | Source | Result | Evidence |
 |---|---|---|---|---|
@@ -28,7 +28,7 @@ The brief has 11 points, but its full text was not available during the check. P
 | 5 | The project's own instructions are not overridden | brief | pass | With the plugins loaded, a probe answered from BBH's `CLAUDE.md`: the commit format `[BBH] short imperative — <72 chars`, Ukrainian commit bodies, and a `code-reviewer` run for CRITICAL zones. The planner quoted `CLAUDE.md:30-36` (no new dependencies) and the CRITICAL-zone list, and noted that commits follow `[BBH] …`. `package.json` and `pnpm-lock.yaml` are unchanged. |
 | 6 | The project lists its check commands in `.claude/agent-guard.json` | brief | pass | The planner cited the file and confirmed both reviewer commands are prefix matches. `plan-verifier` ran `pnpm exec vitest run tests/brand/forbidden-phrases.test.ts`, and both reviewers ran `git diff`. None of them was denied. |
 | 7 | Supporting files survive the plugin cache | brief (checklist) | pass | Present and executable in the cache: `scripts/agent-guard.py` (three copies, one sha), `review-bundle.sh` and `collect.py`. `review-bundle` and `collect.py` both ran from the cache. |
-| 8 | Namespaced names, no clash with the project | brief (checklist) | pass | Every agent and skill shows up as `<plugin>:<name>`. BBH has no `.claude/agents/` or `.claude/skills/`. |
+| 8 | Namespaced names, no clash with the project | README | pass | Every agent and skill shows up as `<plugin>:<name>`. BBH has no `.claude/agents/` or `.claude/skills/`. |
 | 9 | 1.0.x installs and resolves dependencies | README | pass | `claude plugin list --json`: four entries, `errors: null`. There was no `dependency-unsatisfied`, `range-conflict` or `no-matching-tag`. |
 | 10 | `agent-guard` allows listed commands and denies the rest | README | pass | The hook script was fed `PreToolUse` input as `sdd-engineering:plan-verifier`. Allowed: `pnpm test`, `pnpm exec vitest run tests/brand`, `git diff HEAD~1`. Denied: `pnpm install left-pad`, `rm -rf lib`, `pnpm test && rm -rf lib`, and a `Write` to `lib/x.ts` by `spec-creator`. With `agent-guard.json` removed, `pnpm test` was denied too. In the live run, the guarded agents used only plain, listed commands. |
 | 11 | Agents take check commands from the project, never guess | README | pass | BBH keeps its commands in `.claude/contexts/verification.md`, which the `CLAUDE.md` loads lazily through a hook. That hook was absent in the clone. The planner found the commands there and in the `package.json` scripts, and cited both. It also routed `pnpm lint` to the main session because `lint` is not in `checkCommands`. |
