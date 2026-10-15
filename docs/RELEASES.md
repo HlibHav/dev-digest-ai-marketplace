@@ -14,7 +14,7 @@ Dependents use `^` ranges in the object form, so `^1.0.0` accepts any `1.x.y` an
 
 ## Current state
 
-Released: `engineering-paved-path`, `research-tools` and `architecture-review` at 1.0.1; `sdd-engineering` at 1.1.0 (Latest), with 1.0.2 as the stable channel below. Every version has a `<plugin>--v<version>` tag and a GitHub Release. `sdd-engineering` declares `^1.0.0` ranges on its three dependencies, and `architecture-review` declares one on `engineering-paved-path`. A tagless marketplace added from a local path still installs and resolves ranges against the version in `plugin.json` (checked on 2.1.296; see the dependency ADR).
+Released: `engineering-paved-path`, `research-tools` and `architecture-review` at 1.0.1; `sdd-engineering` at 1.1.1 (Latest), with 1.0.2 as the stable channel below. Every version has a `<plugin>--v<version>` tag and a GitHub Release. `sdd-engineering` declares `^1.0.0` ranges on its three dependencies, and `architecture-review` declares one on `engineering-paved-path`. A tagless marketplace added from a local path still installs and resolves ranges against the version in `plugin.json` (checked on 2.1.296; see the dependency ADR).
 
 ## Cut a release
 
@@ -62,10 +62,10 @@ An update happens only when the version string changed. A running session keeps 
 
 | Channel | Source | What you get today |
 |---|---|---|
-| latest | `HlibHav/dev-digest-ai-marketplace` (`main`) | `sdd-engineering` 1.1.0, dependencies 1.0.1 |
+| latest | `HlibHav/dev-digest-ai-marketplace` (`main`) | `sdd-engineering` 1.1.1, dependencies 1.0.1 |
 | stable | `HlibHav/dev-digest-ai-marketplace#sdd-engineering--v1.0.2` | `sdd-engineering` 1.0.2, dependencies 1.0.1 |
 
-The stable channel is the catalog pinned to the last tag before 1.1.0. At that tag all four plugins are 1.0.x. A tag cannot move, so stable stays at 1.0.2 until this table names a newer tag. Moving it is a docs change, not a release.
+The stable channel is the catalog pinned to the last tag before 1.1.0. It is 1.0.2 and not 1.0.0 because 1.0.0 carries the `agent-guard.py` flaw that 1.0.1 fixed (read-only agents could run an arbitrary program through `git grep -O`, clustered or abbreviated); 1.0.2 includes that fix and is the line the install check and smoke eval ran against. At that tag all four plugins are 1.0.x. A tag cannot move, so stable stays at 1.0.2 until this table names a newer tag. Moving it is a docs change, not a release.
 
 Both channels use the same catalog name, `dev-digest-ai-marketplace`. That name is machine-wide: `marketplace add` with a different source under the same name repoints every project on the machine that uses it, and the CLI says so ("Plugins already installed from it now update from the new source"). One machine therefore follows one channel at a time. A real parallel beta would need a second catalog with its own `name`.
 
