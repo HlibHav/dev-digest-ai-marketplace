@@ -8,8 +8,13 @@ overlap, files read by more than one agent, rule hits and tool errors.
 Usage:
   collect.py [--session PATH_OR_ID] [--project-dir DIR] [--since ISO] [--json]
 
-With no --session it takes the newest *.jsonl in the project dir derived from the
-current working directory (~/.claude/projects/<cwd with non-alphanumerics as '-'>).
+The project dir defaults to the one derived from the current working directory
+(~/.claude/projects/<cwd with non-alphanumerics as '-'>).
+
+--session reads that one transcript. --since without --session scans every transcript
+in the project dir with lines at or after --since and reports each multi-agent run
+(a session with an Agent/Task/Workflow launch or a subagent transcript in the window),
+so the retro's own session is skipped. With neither, it reads the newest transcript.
 """
 from __future__ import annotations
 
@@ -19,7 +24,7 @@ import re
 import sys
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterator
 
@@ -93,9 +98,11 @@ def ts(s: str | None) -> datetime | None:
     if not s:
         return None
     try:
-        return datetime.fromisoformat(s.replace("Z", "+00:00"))
+        t = datetime.fromisoformat(s.replace("Z", "+00:00"))
     except ValueError:
         return None
+    # Transcripts are UTC with an offset; read a bare --since as UTC so they compare.
+    return t if t.tzinfo else t.replace(tzinfo=timezone.utc)
 
 
 def lines(path: Path) -> Iterator[dict[str, Any]]:
@@ -180,24 +187,27 @@ def resolve_session(arg: str | None, project_dir: Path) -> Path:
     return files[0]
 
 
-def fmt(n: int) -> str:
-    return f"{n / 1000:.1f}k" if n >= 1000 else str(n)
+@dataclass
+class Run:
+    session: Path
+    main: Agent
+    subs: list[Agent]
+    launches: list[dict[str, Any]]
+
+    @property
+    def everyone(self) -> list[Agent]:
+        return [self.main, *self.subs]
+
+    @property
+    def shared_reads(self) -> dict[str, list[str]]:
+        readers: dict[str, list[str]] = defaultdict(list)
+        for ag in self.everyone:
+            for f in ag.files_read:
+                readers[f].append(ag.label)
+        return {f: who for f, who in readers.items() if len(who) > 1}
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--session")
-    ap.add_argument("--project-dir")
-    ap.add_argument("--since", help="ISO timestamp; ignore transcript lines before it")
-    ap.add_argument("--json", action="store_true")
-    a = ap.parse_args()
-
-    project_dir = Path(a.project_dir).expanduser() if a.project_dir else project_dir_for(Path.cwd())
-    session = resolve_session(a.session, project_dir)
-    since = ts(a.since)
-    if a.since and not since:
-        sys.exit(f"bad --since: {a.since}")
-
+def collect(session: Path, since: datetime | None) -> Run:
     main_agent = Agent(key="main", label="main session")
     launches = scan(session, main_agent, since)
 
@@ -216,37 +226,51 @@ def main() -> None:
         scan(tp, ag, since)
         if ag.start:  # skip agents entirely before --since
             subs.append(ag)
-    subs.sort(key=lambda x: x.start or datetime.max)
+    subs.sort(key=lambda x: x.start or datetime.max.replace(tzinfo=timezone.utc))
+    return Run(session, main_agent, subs, launches)
 
-    everyone = [main_agent, *subs]
-    readers: dict[str, list[str]] = defaultdict(list)
-    for ag in everyone:
-        for f in ag.files_read:
-            readers[f].append(ag.label)
-    shared_reads = {f: who for f, who in readers.items() if len(who) > 1}
 
-    if a.json:
-        out = {
-            "session": str(session),
-            "agents": [
-                {
-                    "label": ag.label, "type": ag.agent_type, "model": ag.model,
-                    "background": ag.background, "start": ag.start.isoformat() if ag.start else None,
-                    "minutes": round(ag.minutes, 1), "tokens": vars(ag.usage) | {"total": ag.usage.total},
-                    "tool_calls": dict(ag.tool_calls), "errors": ag.errors, "rule_hits": ag.rule_hits,
-                    "files_read": sorted(ag.files_read), "files_written": sorted(ag.files_written),
-                }
-                for ag in everyone
-            ],
-            "shared_reads": shared_reads,
-            "launches": [{"at": l["at"].isoformat() if l["at"] else None, "tool": l["tool"],
-                          "description": l["input"].get("description"), "model": l["input"].get("model")}
-                         for l in launches],
-        }
-        print(json.dumps(out, indent=2, default=str))
-        return
+def runs_since(project_dir: Path, since: datetime) -> list[Run]:
+    """Every multi-agent run in the project dir with transcript lines at or after `since`."""
+    runs: list[Run] = []
+    for p in project_dir.glob("*.jsonl"):
+        # Cheap prefilter: a file last written before the window has no line in it.
+        if datetime.fromtimestamp(p.stat().st_mtime, timezone.utc) < since:
+            continue
+        run = collect(p, since)
+        if run.main.start and (run.launches or run.subs):
+            runs.append(run)
+    runs.sort(key=lambda r: r.main.start or since)
+    return runs
 
-    print(f"# Workflow retro data\n\nSession: `{session}`")
+
+def fmt(n: int) -> str:
+    return f"{n / 1000:.1f}k" if n >= 1000 else str(n)
+
+
+def as_json(run: Run) -> dict[str, Any]:
+    return {
+        "session": str(run.session),
+        "agents": [
+            {
+                "label": ag.label, "type": ag.agent_type, "model": ag.model,
+                "background": ag.background, "start": ag.start.isoformat() if ag.start else None,
+                "minutes": round(ag.minutes, 1), "tokens": vars(ag.usage) | {"total": ag.usage.total},
+                "tool_calls": dict(ag.tool_calls), "errors": ag.errors, "rule_hits": ag.rule_hits,
+                "files_read": sorted(ag.files_read), "files_written": sorted(ag.files_written),
+            }
+            for ag in run.everyone
+        ],
+        "shared_reads": run.shared_reads,
+        "launches": [{"at": l["at"].isoformat() if l["at"] else None, "tool": l["tool"],
+                      "description": l["input"].get("description"), "model": l["input"].get("model")}
+                     for l in run.launches],
+    }
+
+
+def print_markdown(run: Run, since: datetime | None) -> None:
+    everyone, subs, launches, shared_reads = run.everyone, run.subs, run.launches, run.shared_reads
+    print(f"# Workflow retro data\n\nSession: `{run.session}`")
     if since:
         print(f"Window: from {since.isoformat()}")
     tot = Usage()
@@ -299,6 +323,40 @@ def main() -> None:
         print(f"- {label}: {e}")
     if not errs:
         print("- none")
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--session", help="transcript path or session id; read only that session")
+    ap.add_argument("--project-dir")
+    ap.add_argument("--since", help="ISO timestamp (UTC if no offset); ignore transcript lines before it. "
+                                    "Without --session, scan every session in the project dir for runs")
+    ap.add_argument("--json", action="store_true")
+    a = ap.parse_args()
+
+    project_dir = Path(a.project_dir).expanduser() if a.project_dir else project_dir_for(Path.cwd())
+    since = ts(a.since)
+    if a.since and not since:
+        sys.exit(f"bad --since: {a.since}")
+
+    if since and not a.session:
+        runs = runs_since(project_dir, since)
+        if not runs:
+            sys.exit(f"no multi-agent run found in {project_dir} since {since.isoformat()}")
+        if a.json:
+            print(json.dumps({"runs": [as_json(r) for r in runs]}, indent=2, default=str))
+            return
+        for i, run in enumerate(runs):
+            if i:
+                print("\n---\n")
+            print_markdown(run, since)
+        return
+
+    run = collect(resolve_session(a.session, project_dir), since)
+    if a.json:
+        print(json.dumps(as_json(run), indent=2, default=str))
+        return
+    print_markdown(run, since)
 
 
 if __name__ == "__main__":
