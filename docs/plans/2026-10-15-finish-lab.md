@@ -102,7 +102,7 @@ Use an existing repo that has its own CLAUDE.md and test commands, and no local 
 - [ ] Pages catalog shows current versions, dependencies and READMEs
 - [ ] `architecture-reviewer` free of project-specific paths; `sdd-engineering` uses namespaced dependencies
 - [ ] Validation, behaviour evals and negative evals green
-- [ ] 1.0.x installs in another existing project (phase 6)
+- [x] 1.0.x installs in another existing project (phase 6, 2026-10-15, see INSTALL-CHECK.md)
 - [ ] Supporting files and scripts survive the plugin cache
 - [ ] Cost experiment with baseline, quality gate and an honest result
 - [ ] Catalog update and plugin update checked separately
