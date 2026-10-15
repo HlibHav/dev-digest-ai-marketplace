@@ -27,6 +27,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
@@ -38,10 +40,13 @@ jobs:
           CASES: ${{ inputs.cases }}
           MODEL: ${{ inputs.model }}
           REPEAT: ${{ inputs.repeat }}
+          INCLUDE_EXPENSIVE: ${{ inputs.include_expensive }}
+        # Every dispatch input reaches the shell through env, never by expression interpolation in the script; the Node
+        # script also validates MODEL, CASES and REPEAT before use.
         run: |
           test -n "$ANTHROPIC_API_KEY" || { echo "ANTHROPIC_API_KEY secret is not set"; exit 1; }
           extra=()
-          if [ "${{ inputs.include_expensive }}" = "true" ]; then extra+=(--include-expensive); fi
+          if [ "$INCLUDE_EXPENSIVE" = "true" ]; then extra+=(--include-expensive); fi
           node scripts/run-evals.mjs --cases "$CASES" --model "$MODEL" --repeat "$REPEAT" --out .tmp/evals/report.json "${extra[@]}"
       - name: Upload report
         if: always()

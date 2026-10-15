@@ -28,7 +28,7 @@ function eventMap(map, file, where) {
 
 function fromFile(abs, root) {
   const rel = relFromRoot(root, abs);
-  const data = readJsonFile(abs, rel);
+  const data = readJsonFile(abs, rel, root);
   if (!isObj(data) || !isObj(data.hooks)) throw new BuildError(rel, 'must have a top-level "hooks" object');
   return eventMap(data.hooks, rel, 'hooks');
 }

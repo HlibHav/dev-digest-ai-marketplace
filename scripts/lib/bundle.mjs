@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { build, transform } from 'esbuild';
 import { coreOutputs } from './budget-js.mjs';
 import { BuildError } from './errors.mjs';
+import { assertRealInside, isInside } from './safe-path.mjs';
 import { CuratedError, FILES, parseCurated } from '../../site-src/search/curated.js';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -29,7 +30,11 @@ export function curatedPaths(root) {
 export function loadCurated(root) {
   const paths = curatedPaths(root);
   const texts = {};
-  for (const key of CURATED_KEYS) texts[key] = readFileSync(paths[key], 'utf8');
+  for (const key of CURATED_KEYS) {
+    // A curated file under the root's own data/ must not be a symlink out of the root.
+    assertRealInside(isInside(resolve(root), paths[key]) ? resolve(root) : repoRoot, paths[key]);
+    texts[key] = readFileSync(paths[key], 'utf8');
+  }
   try {
     parseCurated(texts);
   } catch (e) {

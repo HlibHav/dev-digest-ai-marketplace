@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { findCycle, parseDependency } from './lib/deps.mjs';
 import { BuildError } from './lib/errors.mjs';
 import { firstChangelogVersion, parseCompatibility } from './lib/plugin-docs.mjs';
+import { PathEscapeError, assertRealInside, resolveInside } from './lib/safe-path.mjs';
 
 // Usage: node scripts/check-repo.mjs [--root <dir>]   (--root exists so tests can point at a bad fixture)
 // A bad argument exits 2 instead of falling back to the real repo, so a test aimed at a broken
@@ -54,7 +55,16 @@ for (const entry of entries) {
     fail(label, 'source must be a string starting with ./plugins/');
     continue;
   }
-  const dir = join(root, entry.source);
+  // `source` is contributor-edited: "./plugins/../../x" starts with ./plugins/ but leaves the repo.
+  let dir;
+  try {
+    dir = resolveInside(root, entry.source);
+    assertRealInside(root, dir);
+  } catch (e) {
+    if (!(e instanceof PathEscapeError)) throw e;
+    fail(label, `source ${entry.source} points outside the repository`);
+    continue;
+  }
   listedDirs.add(resolve(dir));
   if (!isDir(dir)) {
     fail(label, `source directory ${entry.source} does not exist`);

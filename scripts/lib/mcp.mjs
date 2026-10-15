@@ -31,7 +31,7 @@ function unwrap(obj) {
 
 function fromFile(abs, root) {
   const rel = relFromRoot(root, abs);
-  const data = readJsonFile(abs, rel);
+  const data = readJsonFile(abs, rel, root);
   if (!isObj(data)) throw new BuildError(rel, 'must be a JSON object');
   if ('mcpServers' in data && !isObj(data.mcpServers)) throw new BuildError(rel, '"mcpServers" must be an object');
   return serverMap(unwrap(data), rel);

@@ -17,6 +17,7 @@ import { checkEffectsChunks } from './lib/effects-scan.mjs';
 import { CSP } from './lib/csp.mjs';
 import { gzipBytes } from './lib/budget.mjs';
 import { renderPage } from './lib/render/page.mjs';
+import { resolveInside } from './lib/safe-path.mjs';
 
 const USAGE = 'usage: node scripts/build-index.mjs [--root <dir>] [--out <dir>]';
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -77,7 +78,7 @@ try {
 
 rmSync(join(out, 'assets'), { recursive: true, force: true });
 for (const [path, bytes] of [...files].sort(([a], [b]) => (a < b ? -1 : 1))) {
-  const target = join(out, path);
+  const target = resolveInside(out, path);
   mkdirSync(dirname(target), { recursive: true });
   writeFileSync(target, bytes);
 }

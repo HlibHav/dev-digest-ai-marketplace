@@ -1,7 +1,7 @@
 // Builds the catalog index (AC-1 to AC-10, AC-41, AC-42). Pure computation over files under `root`:
 // no network, no clock, no randomness. Every failure is a BuildError and nothing is written here.
 import { existsSync, readFileSync, statSync } from 'node:fs';
-import { isAbsolute, join, relative, resolve } from 'node:path';
+import { join } from 'node:path';
 import { MARKETPLACE, REPO, SCHEMA_VERSION, TYPES, assertIndexShape } from '../../site-src/contract/index-contract.js';
 import { DEFAULT_INDEX_BUDGET_GZIP_BYTES, checkIndexBudget, excerpt } from './budget.mjs';
 import { buildCost } from './cost.mjs';
@@ -13,6 +13,7 @@ import { readMcpServers } from './mcp.mjs';
 import { hookName, mcpName } from './names.mjs';
 import { parseChangelog, parseCompatibility } from './plugin-docs.mjs';
 import { buildTrust } from './trust.mjs';
+import { PathEscapeError, assertRealInside, resolveInside } from './safe-path.mjs';
 
 export const ADD_COMMAND = `/plugin marketplace add ${REPO}`;
 export const installCommand = (plugin) => `/plugin install ${plugin}@${MARKETPLACE}`;
@@ -21,20 +22,27 @@ const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const byCodeUnit = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
 function loadPlugins(root) {
-  const catalog = readJsonFile(join(root, CATALOG_REL), CATALOG_REL);
+  const catalog = readJsonFile(resolveInside(root, CATALOG_REL), CATALOG_REL, root);
   if (!isObj(catalog) || !Array.isArray(catalog.plugins)) throw new BuildError(CATALOG_REL, '"plugins" must be an array');
 
   return catalog.plugins.map((entry, i) => {
     if (!isObj(entry) || typeof entry.name !== 'string' || entry.name === '' || typeof entry.source !== 'string') {
       throw new BuildError(CATALOG_REL, `plugins[${i}] needs a string "name" and a string "source"`);
     }
-    const pluginDir = resolve(root, entry.source);
-    const rel = relative(root, pluginDir);
-    if (rel === '' || rel.startsWith('..') || isAbsolute(rel)) {
-      throw new BuildError(CATALOG_REL, `plugin "${entry.name}": source "${entry.source}" points outside the repository`);
+    // `source` comes from the catalog, which contributors edit: contain it lexically and through symlinks.
+    let pluginDir;
+    try {
+      pluginDir = resolveInside(root, entry.source);
+      if (pluginDir === resolveInside(root)) throw new PathEscapeError(root, entry.source, 'is the repository root');
+      assertRealInside(root, pluginDir);
+    } catch (e) {
+      if (e instanceof PathEscapeError) {
+        throw new BuildError(CATALOG_REL, `plugin "${entry.name}": source "${entry.source}" points outside the repository`);
+      }
+      throw e;
     }
     const file = manifestRel(root, pluginDir);
-    const manifest = readJsonFile(join(pluginDir, '.claude-plugin', 'plugin.json'), file);
+    const manifest = readJsonFile(join(pluginDir, '.claude-plugin', 'plugin.json'), file, pluginDir);
     if (!isObj(manifest)) throw new BuildError(file, 'must be a JSON object');
     if (typeof manifest.version !== 'string' || manifest.version === '') {
       throw new BuildError(file, '"version" must be a non-empty string');
@@ -48,6 +56,7 @@ function readOptional(pluginDir, name, root) {
   const abs = join(pluginDir, name);
   if (!existsSync(abs) || !statSync(abs).isFile()) return null;
   try {
+    assertRealInside(pluginDir, abs);
     return readFileSync(abs, 'utf8');
   } catch (e) {
     throw new BuildError(relFromRoot(root, abs), `cannot be read (${e.code ?? e.message})`);

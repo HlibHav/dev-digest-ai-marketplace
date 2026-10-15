@@ -52,6 +52,7 @@ import {
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { PathEscapeError, safeResolve } from './lib/safe-path.mjs';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const EVALS_DIR = join(REPO_ROOT, 'plugins/sdd-engineering/evals');
@@ -332,6 +333,25 @@ export function selectCases(allCases, spec, { includeExpensive = false } = {}) {
   return { run: picked.filter((c) => !(c.expensive && !includeExpensive)), skipped };
 }
 
+/**
+ * Text of a file in a case's temp project. The run may have planted a symlink there, so a path that
+ * resolves outside the project reads as empty instead of being followed.
+ */
+export function readEvalFile(dir, f) {
+  try {
+    return readFileSync(safeResolve(dir, f), 'utf8');
+  } catch (e) {
+    if (e instanceof PathEscapeError) return '';
+    throw e;
+  }
+}
+
+// Free-text options reach a child process command line (and, in CI, come from workflow_dispatch inputs).
+const MODEL_RE = /^[A-Za-z0-9][A-Za-z0-9._:\-]{0,63}$/;
+const CASES_RE = /^[A-Za-z0-9][A-Za-z0-9._,:\-]{0,255}$/;
+const REPEAT_RE = /^[0-9]{1,2}$/;
+const MAX_REPEAT = 20;
+
 export function parseArgs(argv) {
   const o = { cases: 'all', model: 'haiku', repeat: 1, includeExpensive: false, out: null, maxTotalUsd: 3, keep: false, probe: false };
   const need = (i, name) => {
@@ -342,7 +362,11 @@ export function parseArgs(argv) {
     const a = argv[i];
     if (a === '--cases') o.cases = need(i++, a);
     else if (a === '--model') o.model = need(i++, a);
-    else if (a === '--repeat') o.repeat = Number.parseInt(need(i++, a), 10);
+    else if (a === '--repeat') {
+      const raw = need(i++, a);
+      if (!REPEAT_RE.test(raw)) throw new Error('--repeat must be a positive integer');
+      o.repeat = Number(raw);
+    }
     else if (a === '--out') o.out = need(i++, a);
     else if (a === '--max-total-usd') o.maxTotalUsd = Number(need(i++, a));
     else if (a === '--include-expensive') o.includeExpensive = true;
@@ -350,7 +374,9 @@ export function parseArgs(argv) {
     else if (a === '--probe') o.probe = true;
     else throw new Error(`unknown argument: ${a}`);
   }
-  if (!Number.isInteger(o.repeat) || o.repeat < 1) throw new Error('--repeat must be a positive integer');
+  if (!MODEL_RE.test(o.model)) throw new Error('--model may only contain letters, digits and . _ : - (and must start with a letter or digit)');
+  if (!CASES_RE.test(o.cases)) throw new Error('--cases may only contain letters, digits and . _ , : -');
+  if (!Number.isInteger(o.repeat) || o.repeat < 1 || o.repeat > MAX_REPEAT) throw new Error(`--repeat must be a positive integer up to ${MAX_REPEAT}`);
   if (!Number.isFinite(o.maxTotalUsd) || o.maxTotalUsd <= 0) throw new Error('--max-total-usd must be a positive number');
   return o;
 }
@@ -475,7 +501,7 @@ async function runCaseIn(dir, c, defaults, opts, runIndex) {
   }
   const after = snapshotFiles(dir);
   const assertions = evaluateAssertions(c.assertions ?? {}, {
-    parsed, stderr: res.stderr, before, after, readFile: (f) => readFileSync(join(dir, f), 'utf8'),
+    parsed, stderr: res.stderr, before, after, readFile: (f) => readEvalFile(dir, f),
   }, { allowIncomplete: c.allowIncomplete });
   const metrics = extractMetrics(parsed);
   if (!parsed.result) assertions.unshift({ name: 'resultEvent', ok: false, detail: `exit ${res.code} signal ${res.signal}; stderr: ${res.stderr.slice(0, 300)}` });
