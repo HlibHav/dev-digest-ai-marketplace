@@ -168,13 +168,16 @@
   /* free-text results: one row per entry */
   .grid.is-list .card:not(.has-flip), .grid.is-list .card-front {
     display: grid; grid-template-columns: minmax(0, 15rem) minmax(0, 1fr); column-gap: var(--space-5); row-gap: 8px; align-items: start;
-    grid-template-areas: "head head" "title desc" "rel desc" "req actions" "trust trust" "fb fb";
+    grid-template-areas: "head head" "title desc" "rel desc" "compat desc" "news desc" "req actions" "trust trust" "fb fb";
   }
   .grid.is-list .card-head { grid-area: head; }
   .grid.is-list .card-title { grid-area: title; }
   .grid.is-list .card-desc { grid-area: desc; }
   .grid.is-list .owner, .grid.is-list .contents { grid-area: rel; justify-self: start; }
   .grid.is-list .requires { grid-area: req; }
+  /* compatibility and "what's new" get rows of their own: sharing `req` stacked them on the dependency line */
+  .grid.is-list .requires.compat { grid-area: compat; }
+  .grid.is-list .whats-new { grid-area: news; }
   .grid.is-list .card-actions { grid-area: actions; margin-top: 0; justify-self: start; }
   .grid.is-list .trust-cost { grid-area: trust; }
   .grid.is-list .copy-fallback { grid-area: fb; }
