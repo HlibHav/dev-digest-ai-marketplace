@@ -2,6 +2,12 @@
 
 All notable changes to this plugin are listed here. Versions follow [SemVer](https://semver.org/); the format is close to [Keep a Changelog](https://keepachangelog.com/).
 
+## 1.1.1 — 2026-10-15
+
+### Fixed
+- `workflow-retro deep --since <run start>` reported no multi-agent run when the run happened in another session. Without `--session`, `scripts/collect.py` read only the newest transcript in the project, which is the retro's own session. With `--since` and no `--session` it now scans every transcript in the project with lines at or after `--since` and reports each session that launched agents, skipping the ones that didn't. If none is found it exits with "no multi-agent run found". `--session`, and a run with neither flag, behave as before. A `--since` without a timezone is now read as UTC; before, it crashed on comparison with the transcripts' UTC timestamps.
+- In this mode `--json` prints `{"runs": [...]}`, one object per run in the existing per-session shape.
+
 ## 1.1.0 — 2026-10-14
 
 ### Added

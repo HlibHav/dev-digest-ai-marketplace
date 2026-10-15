@@ -1,0 +1,3 @@
+{"type": "user", "timestamp": "2026-10-15T09:02:05Z", "message": {"content": "brief"}}
+{"type": "assistant", "timestamp": "2026-10-15T09:02:30Z", "message": {"id": "msg-sub-1", "model": "claude-sonnet-5-5", "usage": {"input_tokens": 100, "output_tokens": 50, "cache_read_input_tokens": 1000, "cache_creation_input_tokens": 200}, "content": [{"type": "tool_use", "id": "r-1", "name": "Read", "input": {"file_path": "docs/plans/x.md"}}]}}
+{"type": "assistant", "timestamp": "2026-10-15T09:03:00Z", "message": {"id": "msg-sub-1-end", "model": "claude-sonnet-5-5", "usage": {"input_tokens": 100, "output_tokens": 50, "cache_read_input_tokens": 1000, "cache_creation_input_tokens": 200}, "content": [{"type": "text", "text": "done"}]}}

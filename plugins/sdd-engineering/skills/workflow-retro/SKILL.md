@@ -23,7 +23,9 @@ proposed change on its own.
 - `deep`: also run `${CLAUDE_SKILL_DIR}/scripts/collect.py` (stdlib-only, needs python3) over the session transcripts for exact per-agent tokens,
   tool mix, overlap, files read by several agents, rule hits and tool errors.
 - `--since <ISO>`: limit to the run that started at that time (pass it through to the script).
-  Without it, take the most recent multi-agent run in this session and say which one you picked.
+  In deep mode the script then looks at every session in the project, not just this one, so a
+  run from another session is found. Without it, take the most recent multi-agent run in this
+  session and say which one you picked.
 - a run name (e.g. "checkout-flow run-plan"): use it as the ledger's run label.
 
 ## Step 1 — Scope the run
@@ -45,6 +47,12 @@ otherwise mark it unknown.
 ```bash
 python3 ${CLAUDE_SKILL_DIR}/scripts/collect.py [--since <ISO>] [--session <id>]
 ```
+
+With `--since` and no `--session` it scans every transcript in the project with lines at or
+after that time and reports each multi-agent run it finds (a session that launched agents),
+skipping sessions without one, such as this retro's own. If it finds several, report the one
+the user means and say which. `--session` reads exactly one transcript. With neither flag it
+reads the newest transcript, which is this session.
 
 It dedupes split assistant messages by message id and sums input, output, cache read and cache
 write per agent. Cache write is the cost of re-loading context, and cache read usually dominates
