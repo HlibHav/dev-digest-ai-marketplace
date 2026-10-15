@@ -300,4 +300,27 @@ test.describe('polish', () => {
     ]);
     expect(Math.abs(desc.y - title.y)).toBeLessThan(12);
   });
+
+  test('in list mode no two lines of a plugin card overlap (compatibility, dependencies, what is new)', async ({ page }) => {
+    await open(page, '?q=suite');
+    const card = page.locator('[data-fx-cards].is-list [data-card][data-type="plugin"]').filter({ has: page.locator('.requires.compat') }).filter({ has: page.locator('.requires:not(.compat)') }).first();
+    await expect(card).toBeVisible();
+    const boxes = await card.evaluate((c) => {
+      const host = c.querySelector('.card-front') ?? c;
+      return [...host.children]
+        .filter((el) => el.getBoundingClientRect().height > 0)
+        .map((el) => { const r = el.getBoundingClientRect(); return { cls: el.className, x: r.x, y: r.y, w: r.width, h: r.height }; });
+    });
+    const overlaps = [];
+    for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+      const a = boxes[i], b = boxes[j];
+      const ix = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+      const iy = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+      if (ix > 1 && iy > 1) overlaps.push(`${a.cls} × ${b.cls}`);
+    }
+    expect(boxes.length).toBeGreaterThan(4);
+    expect(overlaps).toEqual([]);
+    const y = (cls) => boxes.find((b) => b.cls === cls).y;
+    expect(y('whats-new')).toBeLessThan(y('trust-cost'));
+  });
 });
