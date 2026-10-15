@@ -118,6 +118,56 @@ claude plugin install sdd-engineering@dev-digest-ai-marketplace --scope project
 
 After the `add` the project had no plugins from this catalog: removing the catalog had uninstalled them, so `install` is needed, not `update`. The install brought back `sdd-engineering` 1.1.0 with the same three dependencies at 1.0.1.
 
+## How to confirm the active version
+
+Two commands, both read-only. `plugin list` shows what is installed; the `init` event of a headless session shows what that session actually loaded, with the plugin's version and cache path. The init event is the telemetry that the version in use is the one you pinned.
+
+```
+claude plugin list --json     # filter to your project with projectPath
+claude -p "say ok" --output-format stream-json --verbose --model claude-haiku-5-5 --setting-sources project \
+  | jq -c 'select(.type=="system" and .subtype=="init") | .plugins[] | select(.path!="builtin") | {name,version,path}'
+```
+
+Run on 2026-10-15 with Claude Code 2.1.296, in a fresh temp project (`git init` only, no DevDigest files, no `.claude/` of its own), all with `--scope project`. The three steps moved the channel the way [Switch to stable](#switch-to-stable-rehearsed-2026-10-15-claude-code-21296) describes: `marketplace remove`, `marketplace add '...#<tag>'`, `install sdd-engineering@dev-digest-ai-marketplace`. Paths are shortened to the part after `~/.claude/plugins/cache/`.
+
+| Step | Pinned ref | `sdd-engineering` in the init event | Dependencies in the init event |
+|---|---|---|---|
+| 1 | `sdd-engineering--v1.0.0` | `1.0.0` (`dev-digest-ai-marketplace/sdd-engineering/1.0.0`) | all three `1.0.1` |
+| 2 | `sdd-engineering--v1.1.0` | `1.1.0` (`dev-digest-ai-marketplace/sdd-engineering/1.1.0`) | all three `1.0.1` |
+| 3 | `sdd-engineering--v1.0.2` (stable) | `1.0.2` (`dev-digest-ai-marketplace/sdd-engineering/1.0.2`) | all three `1.0.1` |
+
+Step 1 in full, the `jq` output of the command above:
+
+```
+{"name":"sdd-engineering","version":"1.0.0","path":"~/.claude/plugins/cache/dev-digest-ai-marketplace/sdd-engineering/1.0.0"}
+{"name":"engineering-paved-path","version":"1.0.1","path":"~/.claude/plugins/cache/dev-digest-ai-marketplace/engineering-paved-path/1.0.1-885d6fb5a22c"}
+{"name":"research-tools","version":"1.0.1","path":"~/.claude/plugins/cache/dev-digest-ai-marketplace/research-tools/1.0.1-885d6fb5a22c"}
+{"name":"architecture-review","version":"1.0.1","path":"~/.claude/plugins/cache/dev-digest-ai-marketplace/architecture-review/1.0.1-885d6fb5a22c"}
+```
+
+The same session lists the plugins' agents and skills, for example `sdd-engineering:spec-creator`, `sdd-engineering:implementation-planner`, `sdd-engineering:plan-verifier`, `architecture-review:architecture-reviewer`, `research-tools:researcher` and `engineering-paved-path:sdd-cascade`.
+
+### `sdd-engineering@1.0.0` installs clean
+
+`marketplace add '...#sdd-engineering--v1.0.0'` and `install` printed:
+
+```
+✔ Successfully installed plugin: sdd-engineering@dev-digest-ai-marketplace (scope: project) (+ 3 dependencies: engineering-paved-path, research-tools, architecture-review)
+```
+
+`claude plugin list --json`, entries of this project (the `errors` key is absent on every entry; it appears only when a plugin has one, and the text view of `plugin list` has no `Requires` or error line):
+
+| Plugin | Version | enabled | scope | `errors` |
+|---|---|---|---|---|
+| `sdd-engineering` | `1.0.0` | true | project | none |
+| `engineering-paved-path` | `1.0.1-885d6fb5a22c` | true | project | none |
+| `research-tools` | `1.0.1-885d6fb5a22c` | true | project | none |
+| `architecture-review` | `1.0.1-885d6fb5a22c` | true | project | none |
+
+The dependencies did not resolve to 1.0.0. The range `^1.0.0` takes the highest tag it accepts, and the dependency tags 1.0.0 and 1.0.1 both exist, so all three came in at 1.0.1 (the short commit of that tag follows the version). The pin on `sdd-engineering--v1.0.0` fixes the catalog and `sdd-engineering`, not the dependencies below their range ceiling.
+
+The project had no DevDigest files: the plugin content comes from the cache, not from the repository.
+
 ## Pinning
 
 Pin the whole catalog to a tag or ref:
