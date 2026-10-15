@@ -88,7 +88,7 @@ Per case (5 runs each, all successful, so the cost per successful workflow is th
 | `spec-creator-writes-spec` (prompt trimmed) | $0.7133, $0.1427 | $0.6290, $0.1258 | −11.8% |
 | `planner-uses-existing-spec` (prompt unchanged) | $0.9754, $0.1951 | $0.9570, $0.1914 | −1.9% |
 
-Quality gate for both passes: pass rate 10/10 (100%), every assertion held, no critical error, and one subagent per run, always the expected one. The unchanged planner case moved −1.9% on the mean, which is the noise floor of 5 runs. The spec-creator mean fell more, but the baseline's first run ($0.2025) is an outlier that lifts the before mean; the medians in the tables above ($0.132 to $0.122, −7.7%) are the fairer comparison, and the ranges overlap. The verdict stands: the quality gate is green and the saving is within noise, so it is recorded here and not claimed as a saving.
+Quality gate for both passes: pass rate 10/10 (100%), every assertion held, no critical error, and one subagent per run, always the expected one. The unchanged planner case moved −1.9% on the mean and −4.3% on the median, so the noise floor of 5 runs is about 2–4%. The spec-creator mean fell −11.8%, but that figure is inflated by the baseline's first run ($0.2025), an outlier that lifts the before mean; the medians in the tables above ($0.132 to $0.122, about −7.6%) are the fairer comparison, and the ranges overlap. The verdict stands: the quality gate is green and the saving is within noise, so it is recorded here and not claimed as a saving.
 
 ## Budget and review threshold
 

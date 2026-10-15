@@ -65,7 +65,7 @@ An update happens only when the version string changed. A running session keeps 
 | latest | `HlibHav/dev-digest-ai-marketplace` (`main`) | `sdd-engineering` 1.1.1, dependencies 1.0.1 |
 | stable | `HlibHav/dev-digest-ai-marketplace#sdd-engineering--v1.0.2` | `sdd-engineering` 1.0.2, dependencies 1.0.1 |
 
-The stable channel is the catalog pinned to the last tag before 1.1.0. It is 1.0.2 and not 1.0.0 because 1.0.0 carries the `agent-guard.py` flaw that 1.0.1 fixed (read-only agents could run an arbitrary program through `git grep -O`, clustered or abbreviated); 1.0.2 includes that fix and is the line the install check and smoke eval ran against. At that tag all four plugins are 1.0.x. A tag cannot move, so stable stays at 1.0.2 until this table names a newer tag. Moving it is a docs change, not a release.
+The stable channel is the catalog pinned to the last tag before 1.1.0. 1.0.0 is excluded because it carries the `agent-guard.py` flaw that 1.0.1 fixed (read-only agents could run an arbitrary program through `git grep -O`, clustered or abbreviated). 1.0.2 includes that fix and is the line the install check and smoke eval ran against. At that tag all four plugins are 1.0.x. A tag cannot move, so stable stays at 1.0.2 until this table names a newer tag. Moving it is a docs change, not a release.
 
 Both channels use the same catalog name, `dev-digest-ai-marketplace`. That name is machine-wide: `marketplace add` with a different source under the same name repoints every project on the machine that uses it, and the CLI says so ("Plugins already installed from it now update from the new source"). One machine therefore follows one channel at a time. A real parallel beta would need a second catalog with its own `name`.
 
