@@ -79,6 +79,7 @@ This takes effect after each teammate accepts the workspace trust dialog. To upd
 │   ├── RELEASES.md                   # versions, tags, rollback
 │   ├── SITE-SPEC.md                  # GitHub Pages catalog (skeleton)
 │   ├── COST-BASELINE.md              # token cost baseline
+│   ├── INSTALL-CHECK.md              # 1.0.x in another project
 │   ├── architecture-decisions/       # ADRs
 │   └── design/                       # catalog design brief, hand-off, tokens
 ├── site-src/                         # browser code and styles bundled into the site
@@ -102,6 +103,7 @@ Start with [CONTRIBUTING.md](CONTRIBUTING.md). Deeper rules are in [docs/PLUGIN-
 - [Releases](docs/RELEASES.md)
 - [Site spec](docs/SITE-SPEC.md) (catalog search: [SPEC-2026-10-14-catalog-search](specs/SPEC-2026-10-14-catalog-search.md))
 - [Cost baseline](docs/COST-BASELINE.md)
+- [Install check in another project](docs/INSTALL-CHECK.md)
 
 ## License
 
