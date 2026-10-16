@@ -41,7 +41,7 @@ claude plugin install sdd-engineering@dev-digest-ai-marketplace --scope project
 
 Each plugin's README has a quick start, usage examples and the files your project should declare. Start with [plugins/README.md](plugins/README.md).
 
-Release state: all four plugins are prepared at 1.0.0 and not yet tagged. Dependency ranges resolve against release tags, so until the tags exist `claude plugin list` reports `sdd-engineering` and `architecture-review` with an unmet dependency. See [docs/RELEASES.md](docs/RELEASES.md).
+Release state: every plugin version has a `<plugin>--v<version>` tag and a GitHub Release. `engineering-paved-path`, `research-tools` and `architecture-review` are at 1.0.1, and `sdd-engineering` is at 1.1.1 (Latest). The stable channel is `sdd-engineering` 1.0.2, the last 1.0.x release. It is verified and is the last tag before 1.1.0. It is not 1.0.0, which carries a guard flaw that 1.0.1 fixed: read-only agents could run an arbitrary program through `git grep -O`. See [docs/RELEASES.md](docs/RELEASES.md).
 
 To enable the plugin for everyone who opens a project, commit this to the project's `.claude/settings.json`:
 

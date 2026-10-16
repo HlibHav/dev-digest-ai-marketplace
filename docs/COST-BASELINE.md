@@ -71,6 +71,25 @@ Total spend for the pass: $1.59.
 
 What would move the number, as a next experiment: the denied Bash-heredoc save (an extra turn in 40% of planner runs) costs more than the whole prompt trim.
 
+## Cost per successful workflow
+
+The measure the homework asks for: money spent per workflow run that passed its assertions, computed as the sum of `total_cost_usd` over all runs divided by the number of passing runs. A "workflow" here is one run of a case (spec, or plan from an existing spec). Source: the raw reports of the two passes (`baseline-sonnet.json`, `after-sonnet.json`, the runner's `--out` files, kept locally under `.tmp/evals/` and not committed), per-run `metrics.costUsd`. The numbers match the totals above ($1.69 and $1.59).
+
+| Pass | sdd-engineering | Runs | Successful | Total cost | Cost per successful workflow |
+|---|---|---|---|---|---|
+| Before (baseline) | 1.0.1 | 10 | 10 | $1.6887 | $0.1689 |
+| After (rerun) | 1.0.2 | 10 | 10 | $1.5860 | $0.1586 |
+| Change | | | | −$0.1027 | −$0.0103 (−6.1%) |
+
+Per case (5 runs each, all successful, so the cost per successful workflow is the mean):
+
+| Case | Before: sum, per workflow | After: sum, per workflow | Change |
+|---|---|---|---|
+| `spec-creator-writes-spec` (prompt trimmed) | $0.7133, $0.1427 | $0.6290, $0.1258 | −11.8% |
+| `planner-uses-existing-spec` (prompt unchanged) | $0.9754, $0.1951 | $0.9570, $0.1914 | −1.9% |
+
+Quality gate for both passes: pass rate 10/10 (100%), every assertion held, no critical error, and one subagent per run, always the expected one. The unchanged planner case moved −1.9% on the mean and −4.3% on the median, so the noise floor of 5 runs is about 2–4%. The spec-creator mean fell −11.8%, but that figure is inflated by the baseline's first run ($0.2025), an outlier that lifts the before mean; the medians in the tables above ($0.132 to $0.122, about −7.6%) are the fairer comparison, and the ranges overlap. The verdict stands: the quality gate is green and the saving is within noise, so it is recorded here and not claimed as a saving.
+
 ## Budget and review threshold
 
 - A pull request that changes an agent prompt or a preloaded skill reruns the scenario command above. Use `sonnet` with `--repeat 5`, about $1.70 a pass.
